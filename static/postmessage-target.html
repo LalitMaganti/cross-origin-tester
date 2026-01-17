@@ -72,6 +72,19 @@
             const fromIframeHost = e.source === window.parent;
             const fromOpenee = e.source && e.source.opener === window;
 
+            // PING/PONG - check source first
+            if (e.data === 'PING') {
+                if (e.source === null || !(fromOpener || fromIframeHost || fromOpenee)) {
+                    log('DROPPED PING: source is not opener/parent/openee (source=' + (e.source === null ? 'null' : 'other') + ')', 'error');
+                    addStatus('PING DROPPED', false);
+                    return;
+                }
+                log('Got PING, source OK (opener=' + fromOpener + ', parent=' + fromIframeHost + ', openee=' + fromOpenee + '), sending PONG');
+                e.source.postMessage('PONG', '*');
+                addStatus('PING/PONG', true);
+                return;
+            }
+
             if (e.source === null || !(fromOpener || fromIframeHost || fromOpenee)) {
                 log('Ignoring: source is not opener/parent/openee', 'warn');
                 addStatus('Bad source', false);
@@ -80,14 +93,6 @@
 
             log('Source check passed: opener=' + fromOpener + ', parent=' + fromIframeHost + ', openee=' + fromOpenee);
             addStatus('Source OK', true);
-
-            // PING/PONG
-            if (e.data === 'PING') {
-                log('Got PING, sending PONG');
-                e.source.postMessage('PONG', '*');
-                addStatus('PING/PONG', true);
-                return;
-            }
 
             // ScrollToRange
             if (isScrollToRange(e.data)) {
