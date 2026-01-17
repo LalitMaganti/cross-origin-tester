@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Embedded Page</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 15px;
+            background: #f0f9ff;
+            color: #1e3a5f;
+            font-size: 14px;
+        }
+        h3 { margin: 0 0 10px; color: #0369a1; }
+        .status { 
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            margin: 2px;
+            font-size: 12px;
+        }
+        .status.yes { background: #bbf7d0; color: #166534; }
+        .status.no { background: #fecaca; color: #991b1b; }
+        .info { color: #6b7280; font-size: 12px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <h3>📎 Embedded Context</h3>
+    <div>
+        <span class="status" id="isolated">Loading...</span>
+        <span class="status" id="sab">Loading...</span>
+        <span class="status" id="secure">Loading...</span>
+    </div>
+    <div class="info" id="info"></div>
+
+    <script>
+        const isolated = window.crossOriginIsolated;
+        document.getElementById('isolated').textContent = `Isolated: ${isolated ? 'Yes' : 'No'}`;
+        document.getElementById('isolated').className = 'status ' + (isolated ? 'yes' : 'no');
+
+        let sabAvailable = false;
+        try {
+            new SharedArrayBuffer(1);
+            sabAvailable = true;
+        } catch (e) {}
+        document.getElementById('sab').textContent = `SAB: ${sabAvailable ? 'Yes' : 'No'}`;
+        document.getElementById('sab').className = 'status ' + (sabAvailable ? 'yes' : 'no');
+
+        const secure = window.isSecureContext;
+        document.getElementById('secure').textContent = `Secure: ${secure ? 'Yes' : 'No'}`;
+        document.getElementById('secure').className = 'status ' + (secure ? 'yes' : 'no');
+
+        document.getElementById('info').textContent = 
+            `Origin: ${window.origin} | In iframe: ${window.parent !== window}`;
+
+        // Notify parent
+        if (window.parent !== window) {
+            window.parent.postMessage({
+                type: 'embed-status',
+                crossOriginIsolated: isolated,
+                sharedArrayBuffer: sabAvailable,
+                secureContext: secure
+            }, '*');
+        }
+    </script>
+</body>
+</html>

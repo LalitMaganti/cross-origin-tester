@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>COOP/COEP Tester</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a2e;
+            color: #eee;
+        }
+        h1 { color: #00d9ff; margin-bottom: 5px; }
+        h2 { color: #ff6b6b; margin-top: 30px; }
+        .subtitle { color: #888; margin-bottom: 20px; }
+        .status-card {
+            background: #16213e;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+            border-left: 4px solid #444;
+        }
+        .status-card.success { border-left-color: #4ade80; }
+        .status-card.warning { border-left-color: #fbbf24; }
+        .status-card.error { border-left-color: #f87171; }
+        .status-card.info { border-left-color: #60a5fa; }
+        .label { font-weight: bold; color: #888; font-size: 12px; text-transform: uppercase; }
+        .value { font-size: 18px; margin-top: 5px; }
+        .value.true { color: #4ade80; }
+        .value.false { color: #f87171; }
+        .value.na { color: #888; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; }
+        button {
+            background: #4f46e5;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        button:hover { background: #4338ca; }
+        button:disabled { background: #444; cursor: not-allowed; }
+        .test-result {
+            background: #0f172a;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .controls {
+            background: #16213e;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .controls label {
+            display: block;
+            margin: 10px 0 5px;
+            color: #888;
+        }
+        .controls select {
+            background: #0f172a;
+            color: #eee;
+            border: 1px solid #333;
+            padding: 8px 12px;
+            border-radius: 4px;
+            width: 100%;
+            max-width: 300px;
+        }
+        iframe {
+            width: 100%;
+            height: 200px;
+            border: 2px solid #333;
+            border-radius: 4px;
+            background: #fff;
+        }
+        .iframe-error {
+            background: #7f1d1d;
+            color: #fca5a5;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        a { color: #60a5fa; }
+        code {
+            background: #0f172a;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 13px;
+        }
+        .header-display {
+            display: inline-block;
+            background: #0f172a;
+            padding: 4px 10px;
+            border-radius: 4px;
+            margin: 2px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔒 COOP/COEP Tester</h1>
+    <p class="subtitle">Test Cross-Origin-Opener-Policy and Cross-Origin-Embedder-Policy configurations</p>
+
+    <h2>Current Status</h2>
+    <div class="grid">
+        <div class="status-card" id="isolated-card">
+            <div class="label">Cross-Origin Isolated</div>
+            <div class="value" id="cross-origin-isolated">Checking...</div>
+        </div>
+        <div class="status-card" id="sab-card">
+            <div class="label">SharedArrayBuffer</div>
+            <div class="value" id="shared-array-buffer">Checking...</div>
+        </div>
+        <div class="status-card" id="atomics-card">
+            <div class="label">Atomics.wait</div>
+            <div class="value" id="atomics-wait">Checking...</div>
+        </div>
+        <div class="status-card" id="perf-card">
+            <div class="label">High-Resolution Timing</div>
+            <div class="value" id="perf-timing">Checking...</div>
+        </div>
+    </div>
+
+    <h2>Active Headers</h2>
+    <div class="status-card info" id="headers-card">
+        <div id="active-headers">Loading...</div>
+    </div>
+
+    <h2>Configure Headers</h2>
+    <div class="controls">
+        <label for="coop-select">Cross-Origin-Opener-Policy (COOP)</label>
+        <select id="coop-select">
+            <option value="">None</option>
+            <option value="unsafe-none">unsafe-none</option>
+            <option value="same-origin-allow-popups">same-origin-allow-popups</option>
+            <option value="same-origin">same-origin</option>
+        </select>
+
+        <label for="coep-select">Cross-Origin-Embedder-Policy (COEP)</label>
+        <select id="coep-select">
+            <option value="">None</option>
+            <option value="require-corp">require-corp</option>
+            <option value="credentialless">credentialless</option>
+        </select>
+
+        <label for="corp-select">Cross-Origin-Resource-Policy (CORP)</label>
+        <select id="corp-select">
+            <option value="">None</option>
+            <option value="same-origin">same-origin</option>
+            <option value="same-site">same-site</option>
+            <option value="cross-origin">cross-origin</option>
+        </select>
+
+        <br><br>
+        <button onclick="applyHeaders()">Apply Headers & Reload</button>
+        <button onclick="window.location.href='/'">Reset All</button>
+    </div>
+
+    <h2>Fetch Tests</h2>
+    <div class="status-card">
+        <p>Test fetching resources with different CORP headers:</p>
+        <button onclick="testFetch('same-origin')">Fetch with CORP: same-origin</button>
+        <button onclick="testFetch('same-site')">Fetch with CORP: same-site</button>
+        <button onclick="testFetch('cross-origin')">Fetch with CORP: cross-origin</button>
+        <button onclick="testFetch('')">Fetch without CORP</button>
+        <div class="test-result" id="fetch-result">Results will appear here...</div>
+    </div>
+
+    <h2>Iframe Embedding Tests</h2>
+    <div class="status-card">
+        <p>Test embedding this page in an iframe with different configurations:</p>
+        <button onclick="testIframe('', '', '')">No Headers</button>
+        <button onclick="testIframe('same-origin', 'require-corp', 'cross-origin')">Full Isolation + CORP</button>
+        <button onclick="testIframe('same-origin', 'require-corp', '')">Full Isolation (no CORP)</button>
+        <button onclick="testIframe('', '', 'cross-origin')">CORP Only</button>
+        <div id="iframe-container"></div>
+        <div class="test-result" id="iframe-result">Results will appear here...</div>
+    </div>
+
+    <h2>External Iframe Test</h2>
+    <div class="status-card">
+        <p>Test embedding external resources (may fail with COEP: require-corp):</p>
+        <button onclick="testExternalIframe('https://example.com')">Embed example.com</button>
+        <button onclick="testExternalIframe('https://www.wikipedia.org')">Embed wikipedia.org</button>
+        <div id="external-iframe-container"></div>
+        <div class="test-result" id="external-iframe-result">Results will appear here...</div>
+    </div>
+
+    <h2>Context Information</h2>
+    <div class="status-card info">
+        <div class="label">Window Context</div>
+        <div class="test-result" id="context-info">Loading...</div>
+    </div>
+
+    <h2>Quick Reference</h2>
+    <div class="status-card info">
+        <p><strong>To enable cross-origin isolation:</strong></p>
+        <code>Cross-Origin-Opener-Policy: same-origin</code><br>
+        <code>Cross-Origin-Embedder-Policy: require-corp</code>
+        <br><br>
+        <p><strong>To allow cross-origin resources with COEP:</strong></p>
+        <code>Cross-Origin-Resource-Policy: cross-origin</code> (on the resource)<br>
+        or use <code>crossorigin</code> attribute + CORS headers
+        <br><br>
+        <p><strong>To be embeddable in a cross-origin isolated page:</strong></p>
+        <code>Cross-Origin-Resource-Policy: cross-origin</code>
+    </div>
+
+    <script>
+        // Check cross-origin isolation status
+        function checkStatus() {
+            // Cross-Origin Isolated
+            const isolated = window.crossOriginIsolated;
+            const isolatedEl = document.getElementById('cross-origin-isolated');
+            isolatedEl.textContent = isolated ? '✓ Yes' : '✗ No';
+            isolatedEl.className = 'value ' + (isolated ? 'true' : 'false');
+            document.getElementById('isolated-card').className = 'status-card ' + (isolated ? 'success' : 'warning');
+
+            // SharedArrayBuffer
+            const sabEl = document.getElementById('shared-array-buffer');
+            try {
+                new SharedArrayBuffer(1);
+                sabEl.textContent = '✓ Available';
+                sabEl.className = 'value true';
+                document.getElementById('sab-card').className = 'status-card success';
+            } catch (e) {
+                sabEl.textContent = '✗ Unavailable';
+                sabEl.className = 'value false';
+                document.getElementById('sab-card').className = 'status-card warning';
+            }
+
+            // Atomics.wait
+            const atomicsEl = document.getElementById('atomics-wait');
+            try {
+                const sab = new SharedArrayBuffer(4);
+                const view = new Int32Array(sab);
+                Atomics.wait(view, 0, 0, 0);
+                atomicsEl.textContent = '✓ Available';
+                atomicsEl.className = 'value true';
+                document.getElementById('atomics-card').className = 'status-card success';
+            } catch (e) {
+                if (e.message.includes('main thread')) {
+                    atomicsEl.textContent = '⚠ Only in Workers';
+                    atomicsEl.className = 'value na';
+                    document.getElementById('atomics-card').className = 'status-card info';
+                } else {
+                    atomicsEl.textContent = '✗ Unavailable';
+                    atomicsEl.className = 'value false';
+                    document.getElementById('atomics-card').className = 'status-card warning';
+                }
+            }
+
+            // High-res timing
+            const perfEl = document.getElementById('perf-timing');
+            const resolution = performance.now() % 1;
+            if (resolution !== 0 && resolution < 0.1) {
+                perfEl.textContent = '✓ High Resolution';
+                perfEl.className = 'value true';
+                document.getElementById('perf-card').className = 'status-card success';
+            } else {
+                perfEl.textContent = `⚠ Reduced (${resolution.toFixed(4)}ms)`;
+                perfEl.className = 'value na';
+                document.getElementById('perf-card').className = 'status-card info';
+            }
+
+            // Display active headers
+            displayHeaders();
+
+            // Context info
+            displayContext();
+
+            // Set form values from URL
+            const params = new URLSearchParams(window.location.search);
+            document.getElementById('coop-select').value = params.get('coop') || '';
+            document.getElementById('coep-select').value = params.get('coep') || '';
+            document.getElementById('corp-select').value = params.get('corp') || '';
+        }
+
+        function displayHeaders() {
+            const params = new URLSearchParams(window.location.search);
+            const headers = [];
+            
+            const coop = params.get('coop');
+            const coep = params.get('coep');
+            const corp = params.get('corp');
+
+            if (coop) headers.push(`<span class="header-display">COOP: ${coop}</span>`);
+            if (coep) headers.push(`<span class="header-display">COEP: ${coep}</span>`);
+            if (corp) headers.push(`<span class="header-display">CORP: ${corp}</span>`);
+
+            document.getElementById('active-headers').innerHTML = 
+                headers.length > 0 ? headers.join(' ') : '<em>No special headers configured</em>';
+        }
+
+        function displayContext() {
+            const info = {
+                'window.crossOriginIsolated': window.crossOriginIsolated,
+                'window.isSecureContext': window.isSecureContext,
+                'window.origin': window.origin,
+                'document.domain': document.domain,
+                'window.opener': window.opener ? 'exists' : 'null',
+                'window.parent === window': window.parent === window,
+                'window.top === window': window.top === window,
+            };
+            document.getElementById('context-info').textContent = JSON.stringify(info, null, 2);
+        }
+
+        function applyHeaders() {
+            const coop = document.getElementById('coop-select').value;
+            const coep = document.getElementById('coep-select').value;
+            const corp = document.getElementById('corp-select').value;
+            
+            const params = new URLSearchParams();
+            if (coop) params.set('coop', coop);
+            if (coep) params.set('coep', coep);
+            if (corp) params.set('corp', corp);
+            
+            const queryString = params.toString();
+            window.location.href = '/' + (queryString ? '?' + queryString : '');
+        }
+
+        async function testFetch(corp) {
+            const resultEl = document.getElementById('fetch-result');
+            resultEl.textContent = 'Fetching...';
+            
+            try {
+                const url = '/api/echo' + (corp ? `?corp=${corp}` : '');
+                const response = await fetch(url);
+                const data = await response.json();
+                resultEl.textContent = `✓ Success!\nURL: ${url}\nResponse: ${JSON.stringify(data, null, 2)}`;
+            } catch (e) {
+                resultEl.textContent = `✗ Failed!\nError: ${e.message}`;
+            }
+        }
+
+        function testIframe(coop, coep, corp) {
+            const container = document.getElementById('iframe-container');
+            const resultEl = document.getElementById('iframe-result');
+            
+            const params = new URLSearchParams();
+            if (coop) params.set('coop', coop);
+            if (coep) params.set('coep', coep);
+            if (corp) params.set('corp', corp);
+            
+            const url = '/embed.html' + (params.toString() ? '?' + params.toString() : '');
+            
+            resultEl.textContent = `Loading iframe with:\nCOOP: ${coop || 'none'}\nCOEP: ${coep || 'none'}\nCORP: ${corp || 'none'}\nURL: ${url}`;
+            
+            container.innerHTML = '';
+            const iframe = document.createElement('iframe');
+            iframe.src = url;
+            iframe.onload = () => {
+                resultEl.textContent += '\n\n✓ Iframe loaded successfully!';
+            };
+            iframe.onerror = (e) => {
+                resultEl.textContent += `\n\n✗ Iframe failed to load: ${e}`;
+            };
+            container.appendChild(iframe);
+        }
+
+        function testExternalIframe(url) {
+            const container = document.getElementById('external-iframe-container');
+            const resultEl = document.getElementById('external-iframe-result');
+            
+            resultEl.textContent = `Attempting to embed: ${url}\n\nNote: With COEP: require-corp, external resources need CORP: cross-origin header`;
+            
+            container.innerHTML = '';
+            const iframe = document.createElement('iframe');
+            iframe.src = url;
+            iframe.onload = () => {
+                resultEl.textContent += '\n\n✓ Iframe loaded (but may be blocked by X-Frame-Options)';
+            };
+            iframe.onerror = (e) => {
+                resultEl.textContent += `\n\n✗ Iframe blocked`;
+            };
+            container.appendChild(iframe);
+        }
+
+        // Listen for messages from embedded iframes
+        window.addEventListener('message', (event) => {
+            console.log('Message from iframe:', event.data);
+        });
+
+        checkStatus();
+    </script>
+</body>
+</html>
