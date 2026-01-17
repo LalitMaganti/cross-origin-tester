@@ -165,10 +165,17 @@
         <button onclick="testIframe({dip:'isolate-and-require-corp'})">DIP</button>
         <button onclick="testIframe({coop:'same-origin', coep:'require-corp', dip:'isolate-and-require-corp'})">COOP+COEP+DIP</button>
         
+        <p style="color:#fbbf24; margin-top:15px;">With allow="cross-origin-isolated" on iframe:</p>
+        <button onclick="testIframe({}, false, true)">allow only</button>
+        <button onclick="testIframe({coop:'same-origin', coep:'require-corp'}, false, true)">COOP+COEP + allow</button>
+        <button onclick="testIframe({dip:'isolate-and-require-corp'}, false, true)">DIP + allow</button>
+        <button onclick="testIframe({coop:'same-origin', coep:'require-corp', dip:'isolate-and-require-corp'}, false, true)">COOP+COEP+DIP + allow</button>
+        
         <p style="color:#fbbf24; margin-top:15px;">With credentialless iframe attribute:</p>
         <button onclick="testIframe({}, true)">credentialless</button>
         <button onclick="testIframe({coop:'same-origin', coep:'require-corp'}, true)">COOP+COEP + credentialless</button>
         <button onclick="testIframe({dip:'isolate-and-require-corp'}, true)">DIP + credentialless</button>
+        <button onclick="testIframe({coop:'same-origin', coep:'require-corp'}, true, true)">COOP+COEP + credentialless + allow</button>
         
         <div id="iframe-container" style="margin-top:15px;"></div>
         <div class="test-result" id="iframe-result">Click a button to test...</div>
@@ -240,7 +247,7 @@
             window.location.href = window.location.pathname + (params.toString() ? '?' + params : '');
         }
 
-        function testIframe(headers, credentialless = false) {
+        function testIframe(headers, credentialless = false, allowCOI = false) {
             const container = document.getElementById('iframe-container');
             const resultEl = document.getElementById('iframe-result');
             const baseUrl = document.getElementById('target-origin').value;
@@ -258,6 +265,7 @@
             if (headers.coep) config.push('COEP: ' + headers.coep);
             if (headers.dip) config.push('DIP: ' + headers.dip);
             if (credentialless) config.push('iframe[credentialless]');
+            if (allowCOI) config.push('allow="cross-origin-isolated"');
             
             resultEl.textContent = `Target: ${url}\nConfig: ${config.length ? config.join(', ') : 'none'}\n\nParent origin: ${window.origin}\nParent isolated: ${window.crossOriginIsolated}`;
             
@@ -267,6 +275,9 @@
             if (credentialless) {
                 iframe.credentialless = true;
                 iframe.setAttribute('credentialless', '');
+            }
+            if (allowCOI) {
+                iframe.allow = 'cross-origin-isolated';
             }
             
             iframe.onload = () => resultEl.textContent += '\n\n✓ Iframe loaded';
