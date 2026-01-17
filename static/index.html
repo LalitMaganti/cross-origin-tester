@@ -64,7 +64,7 @@
             margin: 10px 0 5px;
             color: #888;
         }
-        .controls select, .controls input[type="text"] {
+        .controls select, .controls input[type="text"], select, input[type="text"] {
             background: #0f172a;
             color: #eee;
             border: 1px solid #333;
@@ -72,6 +72,16 @@
             border-radius: 4px;
             width: 100%;
             max-width: 300px;
+        }
+        .controls label, .status-card label {
+            display: block;
+            margin: 10px 0 5px;
+            color: #888;
+        }
+        input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #4f46e5;
         }
         iframe {
             width: 100%;
@@ -156,15 +166,13 @@
     <div class="status-card" style="border-left-color: #f59e0b;">
         <p><strong>Goal:</strong> Get <code>crossOriginIsolated: true</code> inside a cross-origin iframe</p>
         
-        <div style="margin: 15px 0;">
-            <p style="color:#fbbf24; margin-top:0;">Target iframe headers:</p>
+        <div class="controls" style="margin:0; padding:15px;">
+            <label>Target Origin</label>
+            <input type="text" id="target-origin" value="https://plateau-snow.exe.xyz:8000">
             
-            <label style="color:#888;">Target Origin:</label>
-            <input type="text" id="target-origin" value="https://plateau-snow.exe.xyz:8000" style="width:300px;">
-            
-            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:15px; margin-top:10px;">
+            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:15px; margin-top:5px;">
                 <div>
-                    <label style="color:#888;">COOP:</label>
+                    <label>COOP</label>
                     <select id="iframe-coop">
                         <option value="">None</option>
                         <option value="same-origin">same-origin</option>
@@ -172,7 +180,7 @@
                     </select>
                 </div>
                 <div>
-                    <label style="color:#888;">COEP:</label>
+                    <label>COEP</label>
                     <select id="iframe-coep">
                         <option value="">None</option>
                         <option value="require-corp">require-corp</option>
@@ -180,7 +188,7 @@
                     </select>
                 </div>
                 <div>
-                    <label style="color:#888;">DIP:</label>
+                    <label>DIP <span style="color:#fbbf24;font-size:11px;">Chrome 125+</span></label>
                     <select id="iframe-dip">
                         <option value="">None</option>
                         <option value="isolate-and-require-corp">isolate-and-require-corp</option>
@@ -189,12 +197,12 @@
                 </div>
             </div>
             
-            <p style="color:#fbbf24; margin-top:15px;">Iframe attributes:</p>
-            <div style="display:flex; gap:20px;">
-                <label style="display:flex; align-items:center; gap:8px; color:#eee;">
+            <label style="margin-top:15px;">Iframe Attributes</label>
+            <div style="display:flex; gap:30px; margin-top:8px;">
+                <label style="display:flex; align-items:center; gap:8px; color:#eee; margin:0;">
                     <input type="checkbox" id="iframe-credentialless"> credentialless
                 </label>
-                <label style="display:flex; align-items:center; gap:8px; color:#eee;">
+                <label style="display:flex; align-items:center; gap:8px; color:#eee; margin:0;">
                     <input type="checkbox" id="iframe-allow-coi"> allow="cross-origin-isolated"
                 </label>
             </div>
