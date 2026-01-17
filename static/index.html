@@ -215,10 +215,10 @@
                    style="background:#0f172a;color:#eee;border:1px solid #333;padding:8px;border-radius:4px;width:250px;margin:5px;">
         </div>
         
-        <button onclick="testCrossOriginCoopIframe('')">Target: No COOP</button>
-        <button onclick="testCrossOriginCoopIframe('unsafe-none')">Target: COOP unsafe-none</button>
-        <button onclick="testCrossOriginCoopIframe('same-origin-allow-popups')">Target: COOP same-origin-allow-popups</button>
-        <button onclick="testCrossOriginCoopIframe('same-origin')">Target: COOP same-origin</button>
+        <button onclick="testCrossOriginCoopIframe('', '')">Target: No COOP/COEP</button>
+        <button onclick="testCrossOriginCoopIframe('same-origin', 'require-corp')">Target: COOP+COEP (isolated)</button>
+        <button onclick="testCrossOriginCoopIframe('same-origin', '')">Target: COOP only</button>
+        <button onclick="testCrossOriginCoopIframe('', 'require-corp')">Target: COEP only</button>
         <div id="cross-origin-coop-iframe-container"></div>
         <div class="test-result" id="cross-origin-coop-iframe-result">Results will appear here...
 
@@ -456,19 +456,21 @@ Document-Isolation-Policy: isolate-and-credentialless allows isolation without C
             container.appendChild(iframe);
         }
 
-        function testCrossOriginCoopIframe(coop) {
+        function testCrossOriginCoopIframe(coop, coep) {
             const container = document.getElementById('cross-origin-coop-iframe-container');
             const resultEl = document.getElementById('cross-origin-coop-iframe-result');
             const baseUrl = document.getElementById('cross-origin-base').value || 'http://localhost:8001';
             
             const params = new URLSearchParams();
             if (coop) params.set('coop', coop);
+            if (coep) params.set('coep', coep);
             // Add CORP so it works when we have COEP
             params.set('corp', 'cross-origin');
             
             const url = baseUrl + '/coop-target.html' + (params.toString() ? '?' + params.toString() : '');
             
-            resultEl.textContent = `Loading CROSS-ORIGIN iframe:\nTarget URL: ${url}\nTarget COOP: ${coop || 'none'}\nTarget CORP: cross-origin\n\nYour origin: ${window.origin}\nYour page isolation: ${window.crossOriginIsolated ? 'Yes' : 'No'}\nYour COEP: ${new URLSearchParams(location.search).get('coep') || 'none'}`;
+            const targetIsolated = coop === 'same-origin' && coep === 'require-corp';
+            resultEl.textContent = `Loading CROSS-ORIGIN iframe:\nTarget URL: ${url}\nTarget COOP: ${coop || 'none'}\nTarget COEP: ${coep || 'none'}\nTarget CORP: cross-origin\nTarget will be isolated: ${targetIsolated ? 'Yes' : 'No'}\n\nYour origin: ${window.origin}\nYour page isolation: ${window.crossOriginIsolated ? 'Yes' : 'No'}\nYour COEP: ${new URLSearchParams(location.search).get('coep') || 'none'}`;
             
             container.innerHTML = '';
             const iframe = document.createElement('iframe');

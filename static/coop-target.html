@@ -39,6 +39,7 @@
     <h3>🎯 Target Page (I have COOP set)</h3>
     <div>
         <span class="badge" id="coop-badge">COOP: checking...</span>
+        <span class="badge" id="coep-badge">COEP: checking...</span>
         <span class="badge" id="isolated-badge">Isolated: checking...</span>
     </div>
     <div class="info" id="info">Loading...</div>
@@ -46,11 +47,16 @@
     <script>
         const params = new URLSearchParams(window.location.search);
         const coop = params.get('coop');
+        const coep = params.get('coep');
         
         // Update badges
         const coopBadge = document.getElementById('coop-badge');
         coopBadge.textContent = `COOP: ${coop || 'none'}`;
         coopBadge.className = 'badge ' + (coop ? 'active' : 'inactive');
+        
+        const coepBadge = document.getElementById('coep-badge');
+        coepBadge.textContent = `COEP: ${coep || 'none'}`;
+        coepBadge.className = 'badge ' + (coep ? 'active' : 'inactive');
         
         const isolatedBadge = document.getElementById('isolated-badge');
         isolatedBadge.textContent = `Isolated: ${window.crossOriginIsolated ? 'Yes' : 'No'}`;
