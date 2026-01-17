@@ -19,6 +19,7 @@
     <div id="context">
         <span class="status info" id="ctx-source">Source: ?</span>
         <span class="status info" id="ctx-mode">Mode: ?</span>
+        <span class="status" id="ctx-isolated">Isolated: ?</span>
     </div>
     <br>
     <div id="status"></div>
@@ -55,8 +56,12 @@
             fromOpener ? 'Source: opener (popup)' : 
             fromIframeHost ? 'Source: parent (iframe)' : 'Source: none';
         document.getElementById('ctx-mode').textContent = isOpenee ? 'Mode: openee' : 'Mode: normal';
+        
+        const isolated = window.crossOriginIsolated;
+        document.getElementById('ctx-isolated').textContent = 'Isolated: ' + (isolated ? 'Yes' : 'No');
+        document.getElementById('ctx-isolated').className = 'status ' + (isolated ? 'ok' : 'err');
 
-        log('Context: opener=' + fromOpener + ', inIframe=' + fromIframeHost + ', isOpenee=' + isOpenee);
+        log('Context: opener=' + fromOpener + ', inIframe=' + fromIframeHost + ', isOpenee=' + isOpenee + ', crossOriginIsolated=' + isolated);
 
         // Perfetto-like postMessage handler
         function postMessageHandler(e) {
