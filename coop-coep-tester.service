@@ -6,7 +6,7 @@ After=network.target
 Type=simple
 User=exedev
 WorkingDirectory=/home/exedev/coop-coep-tester
-ExecStart=/home/exedev/coop-coep-tester/server -port 8000
+ExecStart=/home/exedev/coop-coep-tester/server -port 8000 -alt-port 8001
 Restart=on-failure
 RestartSec=5
 

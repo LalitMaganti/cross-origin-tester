@@ -15,6 +15,7 @@ var staticFS embed.FS
 
 func main() {
 	port := flag.Int("port", 8000, "port to listen on")
+	altPort := flag.Int("alt-port", 0, "secondary port for cross-origin testing (0 = disabled)")
 	flag.Parse()
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -125,6 +126,15 @@ func main() {
 		w.WriteHeader(resp.StatusCode)
 		io.Copy(w, resp.Body)
 	})
+
+	// Start alt server for cross-origin testing
+	if *altPort > 0 {
+		go func() {
+			altAddr := fmt.Sprintf(":%d", *altPort)
+			log.Printf("Alt server (cross-origin) starting on http://localhost%s", altAddr)
+			log.Fatal(http.ListenAndServe(altAddr, nil))
+		}()
+	}
 
 	addr := fmt.Sprintf(":%d", *port)
 	log.Printf("Server starting on http://localhost%s", addr)

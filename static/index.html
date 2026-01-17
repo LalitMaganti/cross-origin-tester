@@ -204,20 +204,42 @@
         <div class="test-result" id="external-iframe-result">Results will appear here...</div>
     </div>
 
-    <h2>Embed Site with COOP Header</h2>
+    <h2>Embed Cross-Origin Site with COOP Header</h2>
     <div class="status-card">
-        <p>Test embedding a page that itself sets COOP headers (served from this origin):</p>
+        <p>Test embedding a <strong>cross-origin</strong> page that sets COOP headers:</p>
+        <p style="color:#888;font-size:12px;">Uses port 8001 as a different origin. Both need CORP: cross-origin when you have COEP.</p>
+        
+        <div style="margin: 10px 0;">
+            <label style="color:#888;">Target Origin:</label>
+            <input type="text" id="cross-origin-base" value="http://localhost:8001" 
+                   style="background:#0f172a;color:#eee;border:1px solid #333;padding:8px;border-radius:4px;width:250px;margin:5px;">
+        </div>
+        
+        <button onclick="testCrossOriginCoopIframe('')">Target: No COOP</button>
+        <button onclick="testCrossOriginCoopIframe('unsafe-none')">Target: COOP unsafe-none</button>
+        <button onclick="testCrossOriginCoopIframe('same-origin-allow-popups')">Target: COOP same-origin-allow-popups</button>
+        <button onclick="testCrossOriginCoopIframe('same-origin')">Target: COOP same-origin</button>
+        <div id="cross-origin-coop-iframe-container"></div>
+        <div class="test-result" id="cross-origin-coop-iframe-result">Results will appear here...
+
+This tests what happens when YOU embed a CROSS-ORIGIN iframe where the TARGET sets COOP.
+
+Key points:
+- COOP: same-origin on the target does NOT prevent iframe embedding
+- COOP affects window.opener (popup) relationships, not parent/child iframe relationships
+- With your COEP: require-corp, the target needs CORP: cross-origin to load
+- Cross-origin iframes are always restricted by same-origin policy regardless of COOP</div>
+    </div>
+
+    <h2>Embed Same-Origin Site with COOP Header</h2>
+    <div class="status-card">
+        <p>Test embedding a <strong>same-origin</strong> page that sets COOP headers (for comparison):</p>
         <button onclick="testCoopIframe('')">Target: No COOP</button>
         <button onclick="testCoopIframe('unsafe-none')">Target: COOP unsafe-none</button>
         <button onclick="testCoopIframe('same-origin-allow-popups')">Target: COOP same-origin-allow-popups</button>
         <button onclick="testCoopIframe('same-origin')">Target: COOP same-origin</button>
         <div id="coop-iframe-container"></div>
-        <div class="test-result" id="coop-iframe-result">Results will appear here...
-
-Note: COOP on the *target* page controls its opener/window relationships.
-- COOP: same-origin on the target means it wants isolation from its opener.
-- The iframe will still load, but cross-origin communication may be restricted.
-- COOP primarily affects window.opener, not iframe embedding.</div>
+        <div class="test-result" id="coop-iframe-result">Results will appear here...</div>
     </div>
 
     <h2>Cross-Origin Iframe with Credentials</h2>
@@ -431,6 +453,78 @@ Document-Isolation-Policy: isolate-and-credentialless allows isolation without C
             iframe.onerror = (e) => {
                 resultEl.textContent += `\n\n✗ Iframe failed to load: ${e}`;
             };
+            container.appendChild(iframe);
+        }
+
+        function testCrossOriginCoopIframe(coop) {
+            const container = document.getElementById('cross-origin-coop-iframe-container');
+            const resultEl = document.getElementById('cross-origin-coop-iframe-result');
+            const baseUrl = document.getElementById('cross-origin-base').value || 'http://localhost:8001';
+            
+            const params = new URLSearchParams();
+            if (coop) params.set('coop', coop);
+            // Add CORP so it works when we have COEP
+            params.set('corp', 'cross-origin');
+            
+            const url = baseUrl + '/coop-target.html' + (params.toString() ? '?' + params.toString() : '');
+            
+            resultEl.textContent = `Loading CROSS-ORIGIN iframe:\nTarget URL: ${url}\nTarget COOP: ${coop || 'none'}\nTarget CORP: cross-origin\n\nYour origin: ${window.origin}\nYour page isolation: ${window.crossOriginIsolated ? 'Yes' : 'No'}\nYour COEP: ${new URLSearchParams(location.search).get('coep') || 'none'}`;
+            
+            container.innerHTML = '';
+            const iframe = document.createElement('iframe');
+            iframe.src = url;
+            iframe.style.width = '100%';
+            iframe.style.height = '150px';
+            iframe.style.border = '2px solid #f59e0b';
+            iframe.style.borderRadius = '4px';
+            iframe.style.background = '#fff';
+            
+            iframe.onload = () => {
+                resultEl.textContent += '\n\n✓ Iframe loaded successfully!';
+                resultEl.textContent += '\n\nCross-origin access tests:';
+                
+                // Try to access iframe content (should fail - cross-origin)
+                try {
+                    const doc = iframe.contentDocument;
+                    if (doc) {
+                        resultEl.textContent += '\n✓ Can access contentDocument (unexpected for cross-origin!)';
+                    } else {
+                        resultEl.textContent += '\n✗ contentDocument is null (expected for cross-origin)';
+                    }
+                } catch (e) {
+                    resultEl.textContent += `\n✗ Cannot access contentDocument: ${e.message}`;
+                }
+                
+                // Try contentWindow
+                try {
+                    const win = iframe.contentWindow;
+                    resultEl.textContent += `\n• contentWindow exists: ${!!win}`;
+                    if (win) {
+                        try {
+                            const origin = win.origin;
+                            resultEl.textContent += `\n✓ Can read contentWindow.origin: ${origin}`;
+                        } catch (e2) {
+                            resultEl.textContent += `\n✗ Cannot read origin: ${e2.message}`;
+                        }
+                        try {
+                            const loc = win.location.href;
+                            resultEl.textContent += `\n✓ Can read location.href: ${loc}`;
+                        } catch (e3) {
+                            resultEl.textContent += `\n✗ Cannot read location.href (expected for cross-origin)`;
+                        }
+                    }
+                } catch (e) {
+                    resultEl.textContent += `\n✗ Cannot access contentWindow: ${e.message}`;
+                }
+                
+                resultEl.textContent += '\n\n→ COOP on the target does NOT prevent embedding!';
+                resultEl.textContent += '\n→ Cross-origin restrictions are from same-origin policy, not COOP.';
+            };
+            
+            iframe.onerror = (e) => {
+                resultEl.textContent += `\n\n✗ Iframe failed to load (network error or blocked)`;
+            };
+            
             container.appendChild(iframe);
         }
 
