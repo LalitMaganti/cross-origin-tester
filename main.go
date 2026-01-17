@@ -51,6 +51,15 @@ func main() {
 			w.Header().Set("Cross-Origin-Resource-Policy", "cross-origin")
 		}
 
+		// Set Document-Isolation-Policy header (Chrome)
+		dip := r.URL.Query().Get("dip")
+		switch dip {
+		case "isolate-and-require-corp":
+			w.Header().Set("Document-Isolation-Policy", "isolate-and-require-corp")
+		case "isolate-and-credentialless":
+			w.Header().Set("Document-Isolation-Policy", "isolate-and-credentialless")
+		}
+
 		path := r.URL.Path
 		if path == "/" {
 			path = "/index.html"

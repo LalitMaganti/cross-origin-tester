@@ -162,6 +162,13 @@
             <option value="cross-origin">cross-origin</option>
         </select>
 
+        <label for="dip-select">Document-Isolation-Policy (DIP) <span style="color:#fbbf24;font-size:11px;">Chrome only</span></label>
+        <select id="dip-select">
+            <option value="">None</option>
+            <option value="isolate-and-require-corp">isolate-and-require-corp</option>
+            <option value="isolate-and-credentialless">isolate-and-credentialless</option>
+        </select>
+
         <br><br>
         <button onclick="applyHeaders()">Apply Headers & Reload</button>
         <button onclick="window.location.href='/'">Reset All</button>
@@ -197,6 +204,26 @@
         <div class="test-result" id="external-iframe-result">Results will appear here...</div>
     </div>
 
+    <h2>Cross-Origin Iframe with Credentials</h2>
+    <div class="status-card">
+        <p>Test embedding cross-origin iframes with/without credentials:</p>
+        <div style="margin: 10px 0;">
+            <label style="color:#888;">Custom URL:</label>
+            <input type="text" id="credential-iframe-url" placeholder="https://example.com" 
+                   style="background:#0f172a;color:#eee;border:1px solid #333;padding:8px;border-radius:4px;width:300px;margin:5px;">
+        </div>
+        <button onclick="testCredentialIframe(false)">Embed (with credentials)</button>
+        <button onclick="testCredentialIframe(true)">Embed (credentialless)</button>
+        <button onclick="testCredentialIframe(false, 'anonymous')">Embed (crossorigin=anonymous)</button>
+        <button onclick="testCredentialIframe(false, 'use-credentials')">Embed (crossorigin=use-credentials)</button>
+        <div id="credential-iframe-container"></div>
+        <div class="test-result" id="credential-iframe-result">Results will appear here...
+
+Note: With COEP: require-corp, cross-origin iframes need CORP: cross-origin.
+With COEP: credentialless, cross-origin iframes load without credentials.
+Document-Isolation-Policy: isolate-and-credentialless allows isolation without COOP.</div>
+    </div>
+
     <h2>Context Information</h2>
     <div class="status-card info">
         <div class="label">Window Context</div>
@@ -205,14 +232,22 @@
 
     <h2>Quick Reference</h2>
     <div class="status-card info">
-        <p><strong>To enable cross-origin isolation:</strong></p>
+        <p><strong>To enable cross-origin isolation (traditional):</strong></p>
         <code>Cross-Origin-Opener-Policy: same-origin</code><br>
         <code>Cross-Origin-Embedder-Policy: require-corp</code>
+        <br><br>
+        <p><strong>To enable cross-origin isolation (Chrome - embeddable):</strong></p>
+        <code>Document-Isolation-Policy: isolate-and-require-corp</code><br>
+        <span style="color:#888;font-size:12px;">Allows isolation without COOP, so page can be embedded in iframes</span>
         <br><br>
         <p><strong>To allow cross-origin resources with COEP:</strong></p>
         <code>Cross-Origin-Resource-Policy: cross-origin</code> (on the resource)<br>
         or use <code>crossorigin</code> attribute + CORS headers
         <br><br>
+        <p><strong>COEP: credentialless vs require-corp:</strong></p>
+        <code>require-corp</code> - all cross-origin resources need CORP header<br>
+        <code>credentialless</code> - cross-origin requests sent without credentials<br>
+        <br>
         <p><strong>To be embeddable in a cross-origin isolated page:</strong></p>
         <code>Cross-Origin-Resource-Policy: cross-origin</code>
     </div>
@@ -285,6 +320,7 @@
             document.getElementById('coop-select').value = params.get('coop') || '';
             document.getElementById('coep-select').value = params.get('coep') || '';
             document.getElementById('corp-select').value = params.get('corp') || '';
+            document.getElementById('dip-select').value = params.get('dip') || '';
         }
 
         function displayHeaders() {
@@ -295,9 +331,12 @@
             const coep = params.get('coep');
             const corp = params.get('corp');
 
+            const dip = params.get('dip');
+
             if (coop) headers.push(`<span class="header-display">COOP: ${coop}</span>`);
             if (coep) headers.push(`<span class="header-display">COEP: ${coep}</span>`);
             if (corp) headers.push(`<span class="header-display">CORP: ${corp}</span>`);
+            if (dip) headers.push(`<span class="header-display">DIP: ${dip}</span>`);
 
             document.getElementById('active-headers').innerHTML = 
                 headers.length > 0 ? headers.join(' ') : '<em>No special headers configured</em>';
@@ -320,11 +359,13 @@
             const coop = document.getElementById('coop-select').value;
             const coep = document.getElementById('coep-select').value;
             const corp = document.getElementById('corp-select').value;
+            const dip = document.getElementById('dip-select').value;
             
             const params = new URLSearchParams();
             if (coop) params.set('coop', coop);
             if (coep) params.set('coep', coep);
             if (corp) params.set('corp', corp);
+            if (dip) params.set('dip', dip);
             
             const queryString = params.toString();
             window.location.href = '/' + (queryString ? '?' + queryString : '');
@@ -384,6 +425,59 @@
             iframe.onerror = (e) => {
                 resultEl.textContent += `\n\n✗ Iframe blocked`;
             };
+            container.appendChild(iframe);
+        }
+
+        function testCredentialIframe(credentialless, crossorigin) {
+            const container = document.getElementById('credential-iframe-container');
+            const resultEl = document.getElementById('credential-iframe-result');
+            const urlInput = document.getElementById('credential-iframe-url');
+            const url = urlInput.value || 'https://example.com';
+            
+            let config = [];
+            if (credentialless) config.push('credentialless attribute');
+            if (crossorigin) config.push(`crossorigin="${crossorigin}"`);
+            if (config.length === 0) config.push('default (with credentials)');
+            
+            resultEl.textContent = `Embedding: ${url}\nConfiguration: ${config.join(', ')}\n\nCurrent page isolation: ${window.crossOriginIsolated ? 'Yes' : 'No'}`;
+            
+            container.innerHTML = '';
+            const iframe = document.createElement('iframe');
+            iframe.src = url;
+            iframe.style.width = '100%';
+            iframe.style.height = '200px';
+            iframe.style.border = '2px solid #333';
+            iframe.style.borderRadius = '4px';
+            iframe.style.background = '#fff';
+            
+            if (credentialless) {
+                iframe.credentialless = true;
+                // Also set attribute for browsers that use it
+                iframe.setAttribute('credentialless', '');
+            }
+            
+            if (crossorigin) {
+                iframe.crossOrigin = crossorigin;
+            }
+            
+            iframe.onload = () => {
+                resultEl.textContent += '\n\n✓ Iframe loaded successfully';
+                resultEl.textContent += `\niframe.credentialless: ${iframe.credentialless}`;
+                resultEl.textContent += `\niframe.crossOrigin: ${iframe.crossOrigin || 'null'}`;
+            };
+            iframe.onerror = (e) => {
+                resultEl.textContent += `\n\n✗ Iframe failed to load`;
+            };
+            
+            // Listen for COEP blocking
+            const originalError = window.onerror;
+            window.onerror = (msg, source, line, col, error) => {
+                if (msg.includes('cross-origin') || msg.includes('COEP') || msg.includes('CORP')) {
+                    resultEl.textContent += `\n\n⚠ Error: ${msg}`;
+                }
+                if (originalError) return originalError(msg, source, line, col, error);
+            };
+            
             container.appendChild(iframe);
         }
 
