@@ -437,7 +437,7 @@
             // Build URL with params
             const fetchUrl = new URL(url);
             if (corp) fetchUrl.searchParams.set('corp', corp);
-            if (acao && acao !== '*') fetchUrl.searchParams.set('acao', acao);
+            if (acao) fetchUrl.searchParams.set('acao', acao);
             
             resultEl.textContent = `Fetching: ${fetchUrl}\n\nFetch options:\n  mode: ${mode}\n  credentials: ${credentials}\n\nTarget headers:\n  CORP: ${corp || 'none'}\n  ACAO: ${acao || 'none'}\n\nYour page:\n  origin: ${window.origin}\n  crossOriginIsolated: ${window.crossOriginIsolated}\n  COEP: ${new URLSearchParams(location.search).get('coep') || 'none'}`;
             
