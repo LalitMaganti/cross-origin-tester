@@ -58,38 +58,9 @@
 
         log('Context: opener=' + fromOpener + ', inIframe=' + fromIframeHost + ', isOpenee=' + isOpenee);
 
-        // Perfetto's trusted origins logic
-        function isTrustedOrigin(origin) {
-            const TRUSTED_ORIGINS = [
-                'https://chrometto.googleplex.com',
-                'https://uma.googleplex.com',
-                'https://android-build.googleplex.com',
-            ];
-            if (origin === window.origin) return { trusted: true, reason: 'same-origin' };
-            if (origin === 'null') return { trusted: false, reason: 'null origin' };
-            if (TRUSTED_ORIGINS.includes(origin)) return { trusted: true, reason: 'allowlist' };
-            
-            try {
-                const hostname = new URL(origin).hostname;
-                if (hostname.endsWith('.corp.google.com')) return { trusted: true, reason: '*.corp.google.com' };
-                if (hostname.endsWith('.c.googlers.com')) return { trusted: true, reason: '*.c.googlers.com' };
-                if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]') {
-                    return { trusted: true, reason: 'localhost' };
-                }
-            } catch (e) {
-                return { trusted: false, reason: 'invalid URL' };
-            }
-            return { trusted: false, reason: 'unknown origin' };
-        }
-
         // Perfetto-like postMessage handler
         function postMessageHandler(e) {
             log('Received message from ' + e.origin);
-            
-            // Check origin trust
-            const trust = isTrustedOrigin(e.origin);
-            log('Origin trust: ' + (trust.trusted ? 'TRUSTED' : 'UNTRUSTED') + ' (' + trust.reason + ')');
-            addStatus(trust.trusted ? 'Trusted: ' + trust.reason : 'Untrusted', trust.trusted);
             
             // Check source
             const fromOpener = e.source === window.opener;
