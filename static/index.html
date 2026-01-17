@@ -222,6 +222,64 @@
         <div class="test-result" id="iframe-result">Configure options above and click "Test Iframe"</div>
     </div>
 
+    <h2>Fetch Cross-Origin Resource</h2>
+    <p style="color:#888;">Test fetching a cross-origin resource with different headers</p>
+    
+    <div class="controls">
+        <label>Target URL</label>
+        <input type="text" id="fetch-url" value="https://plateau-snow.exe.xyz:8000/api/echo">
+        
+        <label>Target Resource Headers</label>
+        <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:15px;">
+            <div>
+                <div style="color:#888; font-size:12px; margin-bottom:5px;">CORP</div>
+                <select id="fetch-corp">
+                    <option value="">None</option>
+                    <option value="same-origin">same-origin</option>
+                    <option value="same-site">same-site</option>
+                    <option value="cross-origin">cross-origin</option>
+                </select>
+            </div>
+            <div>
+                <div style="color:#888; font-size:12px; margin-bottom:5px;">Access-Control-Allow-Origin</div>
+                <select id="fetch-acao">
+                    <option value="*">* (any)</option>
+                    <option value="">None</option>
+                </select>
+            </div>
+        </div>
+        
+        <label>Fetch Options</label>
+        <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:15px;">
+            <div>
+                <div style="color:#888; font-size:12px; margin-bottom:5px;">Mode</div>
+                <select id="fetch-mode">
+                    <option value="cors">cors</option>
+                    <option value="no-cors">no-cors</option>
+                    <option value="same-origin">same-origin</option>
+                </select>
+            </div>
+            <div>
+                <div style="color:#888; font-size:12px; margin-bottom:5px;">Credentials</div>
+                <select id="fetch-credentials">
+                    <option value="same-origin">same-origin</option>
+                    <option value="include">include</option>
+                    <option value="omit">omit</option>
+                </select>
+            </div>
+        </div>
+        
+        <br>
+        <button onclick="testFetchFromConfig()" style="background:#f59e0b;">Test Fetch</button>
+        <button onclick="setFetchPreset('none')">No CORP</button>
+        <button onclick="setFetchPreset('corp')">CORP: cross-origin</button>
+        <button onclick="setFetchPreset('no-cors')">no-cors mode</button>
+    </div>
+    
+    <div class="status-card" style="border-left-color: #f59e0b;">
+        <div class="test-result" id="fetch-result">Configure options above and click "Test Fetch"</div>
+    </div>
+
     <h2>Context Info</h2>
     <div class="status-card info">
         <div class="test-result" id="context-info">Loading...</div>
@@ -347,6 +405,58 @@
             window.addEventListener('message', handler);
         }
         
+        async function testFetchFromConfig() {
+            const resultEl = document.getElementById('fetch-result');
+            const url = document.getElementById('fetch-url').value;
+            const corp = document.getElementById('fetch-corp').value;
+            const mode = document.getElementById('fetch-mode').value;
+            const credentials = document.getElementById('fetch-credentials').value;
+            
+            // Build URL with CORP param
+            const fetchUrl = new URL(url);
+            if (corp) fetchUrl.searchParams.set('corp', corp);
+            
+            resultEl.textContent = `Fetching: ${fetchUrl}\n\nFetch options:\n  mode: ${mode}\n  credentials: ${credentials}\n\nTarget headers:\n  CORP: ${corp || 'none'}\n\nYour page:\n  origin: ${window.origin}\n  crossOriginIsolated: ${window.crossOriginIsolated}\n  COEP: ${new URLSearchParams(location.search).get('coep') || 'none'}`;
+            
+            try {
+                const response = await fetch(fetchUrl.toString(), {
+                    mode: mode,
+                    credentials: credentials,
+                });
+                
+                resultEl.textContent += `\n\n✓ Fetch succeeded!\n  status: ${response.status}\n  type: ${response.type}`;
+                
+                if (response.type !== 'opaque') {
+                    try {
+                        const data = await response.json();
+                        resultEl.textContent += `\n  body: ${JSON.stringify(data)}`;
+                    } catch (e) {
+                        resultEl.textContent += `\n  body: (could not parse as JSON)`;
+                    }
+                } else {
+                    resultEl.textContent += `\n  body: (opaque - not readable)`;
+                }
+            } catch (e) {
+                resultEl.textContent += `\n\n✗ Fetch failed!\n  error: ${e.message}`;
+                
+                if (window.crossOriginIsolated && !corp) {
+                    resultEl.textContent += `\n\n→ Hint: Your page has COEP, so cross-origin resources need CORP: cross-origin`;
+                }
+            }
+        }
+        
+        function setFetchPreset(preset) {
+            document.getElementById('fetch-corp').value = '';
+            document.getElementById('fetch-mode').value = 'cors';
+            document.getElementById('fetch-credentials').value = 'same-origin';
+            
+            if (preset === 'corp') {
+                document.getElementById('fetch-corp').value = 'cross-origin';
+            } else if (preset === 'no-cors') {
+                document.getElementById('fetch-mode').value = 'no-cors';
+            }
+        }
+
         function setPreset(preset) {
             document.getElementById('iframe-coop').value = '';
             document.getElementById('iframe-coep').value = '';
