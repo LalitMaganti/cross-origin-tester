@@ -106,6 +106,11 @@ func main() {
 		}
 		w.Header().Set("Access-Control-Allow-Origin", acao)
 		
+		// Set Access-Control-Allow-Credentials when ACAO is set
+		if acao != "" {
+			w.Header().Set("Access-Control-Allow-Credentials", "true")
+		}
+		
 		fmt.Fprintf(w, `{"status":"ok","method":"%s","corp":"%s","acao":"%s"}`, r.Method, corp, acao)
 	})
 
