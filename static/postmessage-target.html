@@ -30,6 +30,7 @@
     <script>
         const params = new URLSearchParams(location.search);
         const isOpenee = params.get('openee') === '1';
+        const openerOrigin = params.get('opener') || '*';
         
         function log(msg, type = 'info') {
             const el = document.getElementById('log');
@@ -149,13 +150,20 @@
 
         // If openee mode, send trace back to opener after a delay
         if (isOpenee && window.opener) {
-            log('Openee mode: will send trace to opener in 1s');
+            log('Openee mode: will send trace to opener at ' + openerOrigin + ' in 1s');
             setTimeout(() => {
                 const buffer = new ArrayBuffer(32);
-                const msg = { perfetto: { title: 'Trace from openee', buffer: buffer } };
-                log('Sending trace to opener...');
-                window.opener.postMessage(msg, '*', [buffer]);
-                addStatus('Sent to opener', true);
+                const view = new Uint8Array(buffer);
+                for (let i = 0; i < 32; i++) view[i] = i;
+                const msg = { perfetto: { title: 'Trace from openee (cross-origin)', buffer: buffer } };
+                log('Sending trace to opener at ' + openerOrigin + '...');
+                try {
+                    window.opener.postMessage(msg, openerOrigin, [buffer]);
+                    addStatus('Sent to opener', true);
+                } catch (e) {
+                    log('Failed to send: ' + e.message, 'error');
+                    addStatus('Send failed', false);
+                }
             }, 1000);
         }
 

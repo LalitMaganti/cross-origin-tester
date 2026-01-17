@@ -22,17 +22,29 @@
 </head>
 <body>
     <h1>📨 PostMessage Handler Tester</h1>
-    <p style="color:#888;">Test postMessage flows like Perfetto's embed API</p>
+    <p style="color:#888;">Test cross-origin postMessage flows like Perfetto's embed API</p>
+
+    <div class="card" style="border-left: 4px solid #f59e0b;">
+        <strong style="color:#f59e0b;">⚠️ Cross-Origin Setup Required</strong>
+        <p style="color:#888;font-size:13px;margin:10px 0 0;">To test cross-origin messaging, you need two different origins. Use the alt-origin field below to specify a different exe.dev instance or port.</p>
+    </div>
 
     <h2>Test Mode</h2>
     <div class="card">
+        <label>This Page's Origin</label>
+        <div style="background:#0f172a;padding:8px;border-radius:4px;font-family:monospace;" id="this-origin"></div>
+        
+        <label>Target Origin (cross-origin)</label>
+        <input type="text" id="target-origin" value="https://alpha-quantum.exe.xyz:8000">
+        <p style="color:#666;font-size:12px;margin:5px 0;">Leave empty for same-origin testing</p>
+        
         <label>Open Target As</label>
         <select id="mode">
             <option value="iframe">iframe (embedded)</option>
             <option value="popup">window.open (popup)</option>
             <option value="openee">openee flow (B→A pattern)</option>
         </select>
-        <label>Target URL</label>
+        <label>Target Path</label>
         <input type="text" id="target-url" value="/postmessage-target.html">
         <br><br>
         <button onclick="openTarget()">Open Target</button>
@@ -83,36 +95,54 @@
         let targetWindow = null;
         let targetIframe = null;
 
+        // Show this origin
+        document.getElementById('this-origin').textContent = window.origin;
+
         function log(id, msg) {
             const el = document.getElementById(id);
             el.textContent = new Date().toISOString().substr(11, 12) + ' ' + msg + '\n' + el.textContent;
         }
 
+        function getFullTargetUrl(path, extraParams) {
+            const targetOrigin = document.getElementById('target-origin').value.trim();
+            const base = targetOrigin || window.origin;
+            let url = base + path;
+            if (extraParams) url += (url.includes('?') ? '&' : '?') + extraParams;
+            return url;
+        }
+
         function openTarget() {
             closeTarget();
             const mode = document.getElementById('mode').value;
-            const url = document.getElementById('target-url').value;
+            const path = document.getElementById('target-url').value;
             const container = document.getElementById('target-container');
             container.style.display = 'block';
 
+            const targetOrigin = document.getElementById('target-origin').value.trim();
+            const isCrossOrigin = targetOrigin && targetOrigin !== window.origin;
+            const originLabel = isCrossOrigin ? ' (CROSS-ORIGIN)' : ' (same-origin)';
+
             if (mode === 'iframe') {
-                container.innerHTML = '<p>Iframe target:</p>';
+                const url = getFullTargetUrl(path);
+                container.innerHTML = '<p>Iframe target' + originLabel + ':</p>';
                 targetIframe = document.createElement('iframe');
                 targetIframe.src = url;
                 container.appendChild(targetIframe);
                 targetWindow = null;
-                log('message-log', 'Opened iframe: ' + url);
+                log('message-log', 'Opened iframe: ' + url + originLabel);
             } else if (mode === 'popup') {
+                const url = getFullTargetUrl(path);
                 targetWindow = window.open(url, 'postmessage-target', 'width=600,height=400');
                 targetIframe = null;
-                container.innerHTML = '<p>Popup window opened. Target: ' + url + '</p>';
-                log('message-log', 'Opened popup: ' + url);
+                container.innerHTML = '<p>Popup window opened' + originLabel + '. Target: ' + url + '</p>';
+                log('message-log', 'Opened popup: ' + url + originLabel);
             } else if (mode === 'openee') {
                 // Simulate the openee flow: we open a window that will send back to us
-                targetWindow = window.open(url + '?openee=1', 'postmessage-target', 'width=600,height=400');
+                const url = getFullTargetUrl(path, 'openee=1&opener=' + encodeURIComponent(window.origin));
+                targetWindow = window.open(url, 'postmessage-target', 'width=600,height=400');
                 targetIframe = null;
-                container.innerHTML = '<p>Openee window opened (will send trace back to us). Target: ' + url + '</p>';
-                log('message-log', 'Opened openee window: ' + url);
+                container.innerHTML = '<p>Openee window opened' + originLabel + ' (will send trace back to us). Target: ' + url + '</p>';
+                log('message-log', 'Opened openee window: ' + url + originLabel);
             }
         }
 
