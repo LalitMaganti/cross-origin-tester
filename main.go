@@ -99,10 +99,10 @@ func main() {
 
 		w.Header().Set("Content-Type", "application/json")
 		
-		// Set ACAO header - default to *, or use specified origin
+		// Set ACAO header - default to plateau-snow.exe.xyz
 		acao := r.URL.Query().Get("acao")
 		if acao == "" {
-			acao = "*"
+			acao = "https://plateau-snow.exe.xyz"
 		}
 		w.Header().Set("Access-Control-Allow-Origin", acao)
 		
