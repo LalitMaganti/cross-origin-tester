@@ -73,15 +73,17 @@
             width: 100%;
             max-width: 300px;
         }
-        .controls label, .status-card label {
-            display: block;
-            margin: 10px 0 5px;
-            color: #888;
-        }
         input[type="checkbox"] {
             width: 18px;
             height: 18px;
             accent-color: #4f46e5;
+        }
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #eee;
+            cursor: pointer;
         }
         iframe {
             width: 100%;
@@ -163,58 +165,60 @@
     </div>
 
     <h2>Embed Cross-Origin Iframe</h2>
-    <div class="status-card" style="border-left-color: #f59e0b;">
-        <p><strong>Goal:</strong> Get <code>crossOriginIsolated: true</code> inside a cross-origin iframe</p>
+    <p style="color:#888;">Goal: Get <code>crossOriginIsolated: true</code> inside a cross-origin iframe</p>
+    
+    <div class="controls">
+        <label>Target Origin</label>
+        <input type="text" id="target-origin" value="https://plateau-snow.exe.xyz:8000">
         
-        <div class="controls" style="margin:0; padding:15px;">
-            <label>Target Origin</label>
-            <input type="text" id="target-origin" value="https://plateau-snow.exe.xyz:8000">
-            
-            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:15px; margin-top:5px;">
-                <div>
-                    <label>COOP</label>
-                    <select id="iframe-coop">
-                        <option value="">None</option>
-                        <option value="same-origin">same-origin</option>
-                        <option value="same-origin-allow-popups">same-origin-allow-popups</option>
-                    </select>
-                </div>
-                <div>
-                    <label>COEP</label>
-                    <select id="iframe-coep">
-                        <option value="">None</option>
-                        <option value="require-corp">require-corp</option>
-                        <option value="credentialless">credentialless</option>
-                    </select>
-                </div>
-                <div>
-                    <label>DIP <span style="color:#fbbf24;font-size:11px;">Chrome 125+</span></label>
-                    <select id="iframe-dip">
-                        <option value="">None</option>
-                        <option value="isolate-and-require-corp">isolate-and-require-corp</option>
-                        <option value="isolate-and-credentialless">isolate-and-credentialless</option>
-                    </select>
-                </div>
+        <label>Target Iframe Headers</label>
+        <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:15px;">
+            <div>
+                <div style="color:#888; font-size:12px; margin-bottom:5px;">COOP</div>
+                <select id="iframe-coop">
+                    <option value="">None</option>
+                    <option value="same-origin">same-origin</option>
+                    <option value="same-origin-allow-popups">same-origin-allow-popups</option>
+                </select>
             </div>
-            
-            <label style="margin-top:15px;">Iframe Attributes</label>
-            <div style="display:flex; gap:30px; margin-top:8px;">
-                <label style="display:flex; align-items:center; gap:8px; color:#eee; margin:0;">
-                    <input type="checkbox" id="iframe-credentialless"> credentialless
-                </label>
-                <label style="display:flex; align-items:center; gap:8px; color:#eee; margin:0;">
-                    <input type="checkbox" id="iframe-allow-coi"> allow="cross-origin-isolated"
-                </label>
+            <div>
+                <div style="color:#888; font-size:12px; margin-bottom:5px;">COEP</div>
+                <select id="iframe-coep">
+                    <option value="">None</option>
+                    <option value="require-corp">require-corp</option>
+                    <option value="credentialless">credentialless</option>
+                </select>
+            </div>
+            <div>
+                <div style="color:#888; font-size:12px; margin-bottom:5px;">DIP <span style="color:#fbbf24;">Chrome 125+</span></div>
+                <select id="iframe-dip">
+                    <option value="">None</option>
+                    <option value="isolate-and-require-corp">isolate-and-require-corp</option>
+                    <option value="isolate-and-credentialless">isolate-and-credentialless</option>
+                </select>
             </div>
         </div>
         
-        <button onclick="testIframeFromConfig()" style="background:#f59e0b;">Test Iframe</button>
-        <button onclick="setPreset('none')">Preset: None</button>
-        <button onclick="setPreset('coop-coep')">Preset: COOP+COEP</button>
-        <button onclick="setPreset('dip')">Preset: DIP</button>
-        <button onclick="setPreset('all')">Preset: All</button>
+        <label>Iframe Attributes</label>
+        <div style="display:flex; gap:30px;">
+            <label class="checkbox-label">
+                <input type="checkbox" id="iframe-credentialless"> credentialless
+            </label>
+            <label class="checkbox-label">
+                <input type="checkbox" id="iframe-allow-coi"> allow="cross-origin-isolated"
+            </label>
+        </div>
         
-        <div id="iframe-container" style="margin-top:15px;"></div>
+        <br>
+        <button onclick="testIframeFromConfig()" style="background:#f59e0b;">Test Iframe</button>
+        <button onclick="setPreset('none')">None</button>
+        <button onclick="setPreset('coop-coep')">COOP+COEP</button>
+        <button onclick="setPreset('dip')">DIP</button>
+        <button onclick="setPreset('all')">All</button>
+    </div>
+    
+    <div class="status-card" style="border-left-color: #f59e0b;">
+        <div id="iframe-container"></div>
         <div class="test-result" id="iframe-result">Configure options above and click "Test Iframe"</div>
     </div>
 
