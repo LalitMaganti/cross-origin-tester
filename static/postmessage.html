@@ -26,7 +26,7 @@
 
     <h2>This Page's Headers</h2>
     <div class="card">
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:15px;">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:15px;">
             <div>
                 <label>COOP</label>
                 <select id="this-coop">
@@ -41,6 +41,15 @@
                     <option value="">None</option>
                     <option value="require-corp">require-corp</option>
                     <option value="credentialless">credentialless</option>
+                </select>
+            </div>
+            <div>
+                <label>CORP</label>
+                <select id="this-corp">
+                    <option value="">None</option>
+                    <option value="cross-origin">cross-origin</option>
+                    <option value="same-origin">same-origin</option>
+                    <option value="same-site">same-site</option>
                 </select>
             </div>
             <div>
@@ -76,7 +85,7 @@
         <input type="text" id="target-url" value="/postmessage-target.html">
         
         <label>Target Headers</label>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:15px;">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:15px;">
             <div>
                 <div style="color:#666;font-size:12px;">COOP</div>
                 <select id="target-coop">
@@ -99,6 +108,15 @@
                     <option value="cross-origin">cross-origin</option>
                     <option value="">None</option>
                     <option value="same-origin">same-origin</option>
+                    <option value="same-site">same-site</option>
+                </select>
+            </div>
+            <div>
+                <div style="color:#666;font-size:12px;">DIP</div>
+                <select id="target-dip">
+                    <option value="">None</option>
+                    <option value="isolate-and-require-corp">isolate-and-require-corp</option>
+                    <option value="isolate-and-credentialless">isolate-and-credentialless</option>
                 </select>
             </div>
         </div>
@@ -159,7 +177,7 @@
 
         // Restore header selects from URL
         const urlParams = new URLSearchParams(location.search);
-        ['coop', 'coep', 'dip'].forEach(h => {
+        ['coop', 'coep', 'corp', 'dip'].forEach(h => {
             const v = urlParams.get(h);
             const el = document.getElementById('this-' + h);
             if (el && v) el.value = v;
@@ -167,7 +185,7 @@
 
         function applyThisHeaders() {
             const params = new URLSearchParams();
-            ['coop', 'coep', 'dip'].forEach(h => {
+            ['coop', 'coep', 'corp', 'dip'].forEach(h => {
                 const v = document.getElementById('this-' + h).value;
                 if (v) params.set(h, v);
             });
@@ -188,9 +206,11 @@
             const coop = document.getElementById('target-coop').value;
             const coep = document.getElementById('target-coep').value;
             const corp = document.getElementById('target-corp').value;
+            const dip = document.getElementById('target-dip').value;
             if (coop) headerParams.set('coop', coop);
             if (coep) headerParams.set('coep', coep);
             if (corp) headerParams.set('corp', corp);
+            if (dip) headerParams.set('dip', dip);
             
             let url = base + path;
             const allParams = headerParams.toString() + (extraParams ? '&' + extraParams : '');
