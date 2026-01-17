@@ -26,13 +26,11 @@
         }
         .status-card.success { border-left-color: #4ade80; }
         .status-card.warning { border-left-color: #fbbf24; }
-        .status-card.error { border-left-color: #f87171; }
         .status-card.info { border-left-color: #60a5fa; }
         .label { font-weight: bold; color: #888; font-size: 12px; text-transform: uppercase; }
         .value { font-size: 18px; margin-top: 5px; }
         .value.true { color: #4ade80; }
         .value.false { color: #f87171; }
-        .value.na { color: #888; }
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; }
         button {
             background: #4f46e5;
@@ -45,7 +43,6 @@
             margin: 5px;
         }
         button:hover { background: #4338ca; }
-        button:disabled { background: #444; cursor: not-allowed; }
         .test-result {
             background: #0f172a;
             border-radius: 4px;
@@ -67,7 +64,7 @@
             margin: 10px 0 5px;
             color: #888;
         }
-        .controls select {
+        .controls select, .controls input[type="text"] {
             background: #0f172a;
             color: #eee;
             border: 1px solid #333;
@@ -78,19 +75,11 @@
         }
         iframe {
             width: 100%;
-            height: 200px;
+            height: 150px;
             border: 2px solid #333;
             border-radius: 4px;
             background: #fff;
         }
-        .iframe-error {
-            background: #7f1d1d;
-            color: #fca5a5;
-            padding: 10px;
-            border-radius: 4px;
-            margin: 10px 0;
-        }
-        a { color: #60a5fa; }
         code {
             background: #0f172a;
             padding: 2px 6px;
@@ -109,60 +98,49 @@
     </style>
 </head>
 <body>
-    <h1>🔒 COOP/COEP Tester</h1>
-    <p class="subtitle">Test Cross-Origin-Opener-Policy and Cross-Origin-Embedder-Policy configurations</p>
+    <h1>🔒 Cross-Origin Isolation Tester</h1>
+    <p class="subtitle">Test COOP, COEP, CORP, and Document-Isolation-Policy</p>
 
-    <h2>Current Status</h2>
+    <h2>This Page's Status</h2>
     <div class="grid">
         <div class="status-card" id="isolated-card">
-            <div class="label">Cross-Origin Isolated</div>
+            <div class="label">crossOriginIsolated</div>
             <div class="value" id="cross-origin-isolated">Checking...</div>
         </div>
         <div class="status-card" id="sab-card">
             <div class="label">SharedArrayBuffer</div>
             <div class="value" id="shared-array-buffer">Checking...</div>
         </div>
-        <div class="status-card" id="atomics-card">
-            <div class="label">Atomics.wait</div>
-            <div class="value" id="atomics-wait">Checking...</div>
-        </div>
-        <div class="status-card" id="perf-card">
-            <div class="label">High-Resolution Timing</div>
-            <div class="value" id="perf-timing">Checking...</div>
-        </div>
     </div>
 
-    <h2>Active Headers</h2>
-    <div class="status-card info" id="headers-card">
+    <h2>Active Headers on This Page</h2>
+    <div class="status-card info">
         <div id="active-headers">Loading...</div>
     </div>
 
-    <h2>Configure Headers</h2>
+    <h2>Configure This Page's Headers</h2>
     <div class="controls">
-        <label for="coop-select">Cross-Origin-Opener-Policy (COOP)</label>
+        <label>Cross-Origin-Opener-Policy (COOP)</label>
         <select id="coop-select">
             <option value="">None</option>
-            <option value="unsafe-none">unsafe-none</option>
-            <option value="same-origin-allow-popups">same-origin-allow-popups</option>
             <option value="same-origin">same-origin</option>
+            <option value="same-origin-allow-popups">same-origin-allow-popups</option>
         </select>
 
-        <label for="coep-select">Cross-Origin-Embedder-Policy (COEP)</label>
+        <label>Cross-Origin-Embedder-Policy (COEP)</label>
         <select id="coep-select">
             <option value="">None</option>
             <option value="require-corp">require-corp</option>
             <option value="credentialless">credentialless</option>
         </select>
 
-        <label for="corp-select">Cross-Origin-Resource-Policy (CORP)</label>
+        <label>Cross-Origin-Resource-Policy (CORP)</label>
         <select id="corp-select">
             <option value="">None</option>
-            <option value="same-origin">same-origin</option>
-            <option value="same-site">same-site</option>
             <option value="cross-origin">cross-origin</option>
         </select>
 
-        <label for="dip-select">Document-Isolation-Policy (DIP) <span style="color:#fbbf24;font-size:11px;">Chrome only</span></label>
+        <label>Document-Isolation-Policy (DIP) <span style="color:#fbbf24;font-size:11px;">Chrome 125+</span></label>
         <select id="dip-select">
             <option value="">None</option>
             <option value="isolate-and-require-corp">isolate-and-require-corp</option>
@@ -170,171 +148,57 @@
         </select>
 
         <br><br>
-        <button onclick="applyHeaders()">Apply Headers & Reload</button>
-        <button onclick="window.location.href='/'">Reset All</button>
+        <button onclick="applyHeaders()">Apply & Reload</button>
+        <button onclick="window.location.href=window.location.pathname">Reset</button>
     </div>
 
-    <h2>Fetch Tests</h2>
-    <div class="status-card">
-        <p>Test fetching resources with different CORP headers:</p>
-        <button onclick="testFetch('same-origin')">Fetch with CORP: same-origin</button>
-        <button onclick="testFetch('same-site')">Fetch with CORP: same-site</button>
-        <button onclick="testFetch('cross-origin')">Fetch with CORP: cross-origin</button>
-        <button onclick="testFetch('')">Fetch without CORP</button>
-        <div class="test-result" id="fetch-result">Results will appear here...</div>
-    </div>
-
-    <h2>Iframe Embedding Tests</h2>
-    <div class="status-card">
-        <p>Test embedding this page in an iframe with different configurations:</p>
-        <button onclick="testIframe('', '', '')">No Headers</button>
-        <button onclick="testIframe('same-origin', 'require-corp', 'cross-origin')">Full Isolation + CORP</button>
-        <button onclick="testIframe('same-origin', 'require-corp', '')">Full Isolation (no CORP)</button>
-        <button onclick="testIframe('', '', 'cross-origin')">CORP Only</button>
-        
-        <p style="color:#888; margin-top:10px;">Cross-origin (from port 8001):</p>
-        <button onclick="testIframeFromOrigin('https://plateau-snow.exe.xyz:8001', '', '', 'cross-origin')">From :8001 (no headers)</button>
-        <button onclick="testIframeFromOrigin('https://plateau-snow.exe.xyz:8001', 'same-origin', 'require-corp', 'cross-origin')">From :8001 (isolated + CORP)</button>
-        <div id="iframe-container"></div>
-        <div class="test-result" id="iframe-result">Results will appear here...</div>
-    </div>
-
-    <h2>External Iframe Test</h2>
-    <div class="status-card">
-        <p>Test embedding external resources (may fail with COEP: require-corp):</p>
-        <button onclick="testExternalIframe('https://example.com')">Embed example.com</button>
-        <button onclick="testExternalIframe('https://www.wikipedia.org')">Embed wikipedia.org</button>
-        <button onclick="testExternalIframe('https://plateau-snow.exe.xyz:8000')">Embed plateau-snow:8000</button>
-        <button onclick="testExternalIframe('https://plateau-snow.exe.xyz:8001')">Embed plateau-snow:8001</button>
-        <div id="external-iframe-container"></div>
-        <div class="test-result" id="external-iframe-result">Results will appear here...</div>
-    </div>
-
-    <h2>Cross-Origin Iframe Isolation Tests</h2>
+    <h2>Embed Cross-Origin Iframe</h2>
     <div class="status-card" style="border-left-color: #f59e0b;">
-        <p><strong>Goal: Get <code>crossOriginIsolated: true</code> in a cross-origin iframe</strong></p>
-        <p style="color:#888;font-size:12px;">Uses port 8001 as a different origin. Your page (parent) is on port 8000.</p>
+        <p><strong>Goal:</strong> Get <code>crossOriginIsolated: true</code> inside a cross-origin iframe</p>
         
-        <div style="margin: 10px 0;">
-            <label style="color:#888;">Target Origin:</label>
-            <input type="text" id="cross-origin-base" value="https://plateau-snow.exe.xyz:8000" 
-                   style="background:#0f172a;color:#eee;border:1px solid #333;padding:8px;border-radius:4px;width:250px;margin:5px;">
-        </div>
+        <label style="color:#888;">Target Origin:</label>
+        <input type="text" id="target-origin" value="https://plateau-snow.exe.xyz:8000" style="margin-bottom:15px;">
         
-        <p style="color:#fbbf24;">Method 1: Target headers only (COOP doesn't work in iframes)</p>
-        <button onclick="testCrossOriginCoopIframe('', '', {})">No headers</button>
-        <button onclick="testCrossOriginCoopIframe('same-origin', 'require-corp', {})">COOP+COEP</button>
+        <p style="color:#fbbf24;">Target iframe headers:</p>
+        <button onclick="testIframe({})">(none)</button>
+        <button onclick="testIframe({coop:'same-origin', coep:'require-corp'})">COOP+COEP</button>
+        <button onclick="testIframe({dip:'isolate-and-require-corp'})">DIP</button>
+        <button onclick="testIframe({coop:'same-origin', coep:'require-corp', dip:'isolate-and-require-corp'})">COOP+COEP+DIP</button>
         
-        <p style="color:#fbbf24; margin-top:15px;">Method 2: credentialless iframe attribute</p>
-        <button onclick="testCrossOriginCoopIframe('same-origin', 'require-corp', {credentialless: true})">COOP+COEP + credentialless iframe</button>
-        <button onclick="testCrossOriginCoopIframe('', '', {credentialless: true})">No headers + credentialless iframe</button>
+        <p style="color:#fbbf24; margin-top:15px;">With credentialless iframe attribute:</p>
+        <button onclick="testIframe({}, true)">credentialless</button>
+        <button onclick="testIframe({coop:'same-origin', coep:'require-corp'}, true)">COOP+COEP + credentialless</button>
+        <button onclick="testIframe({dip:'isolate-and-require-corp'}, true)">DIP + credentialless</button>
         
-        <p style="color:#fbbf24; margin-top:15px;">Method 3: Document-Isolation-Policy (Chrome only, designed for iframes)</p>
-        <button onclick="testCrossOriginCoopIframe('', '', {dip: 'isolate-and-require-corp'})">DIP only</button>
-        <button onclick="testCrossOriginCoopIframe('', 'require-corp', {dip: 'isolate-and-require-corp'})">COEP + DIP</button>
-        <button onclick="testCrossOriginCoopIframe('same-origin', 'require-corp', {dip: 'isolate-and-require-corp'})">COOP + COEP + DIP (all three)</button>
-        
-        <p style="color:#fbbf24; margin-top:15px;">Method 4: Combinations with credentialless iframe</p>
-        <button onclick="testCrossOriginCoopIframe('same-origin', 'require-corp', {dip: 'isolate-and-require-corp', credentialless: true})">All headers + credentialless</button>
-        <div id="cross-origin-coop-iframe-container"></div>
-        <div class="test-result" id="cross-origin-coop-iframe-result">Results will appear here...
-
-Goal: Get crossOriginIsolated: true in a cross-origin iframe
-
-Why COOP doesn't work for iframes:
-- COOP (Cross-Origin-Opener-Policy) only applies to TOP-LEVEL browsing contexts
-- Iframes are not top-level, so COOP headers on iframe content are ignored for isolation
-
-Possible solutions:
-1. credentialless iframe - loads iframe without credentials, may enable isolation
-2. Document-Isolation-Policy - Chrome feature designed for iframe isolation
-3. Same-origin iframe inside isolated parent (not cross-origin)
-
-Note: Your parent page must also be isolated for some of these to work.</div>
+        <div id="iframe-container" style="margin-top:15px;"></div>
+        <div class="test-result" id="iframe-result">Click a button to test...</div>
     </div>
 
-    <h2>Embed Same-Origin Site with COOP Header</h2>
-    <div class="status-card">
-        <p>Test embedding a <strong>same-origin</strong> page that sets COOP headers (for comparison):</p>
-        <button onclick="testCoopIframe('')">Target: No COOP</button>
-        <button onclick="testCoopIframe('unsafe-none')">Target: COOP unsafe-none</button>
-        <button onclick="testCoopIframe('same-origin-allow-popups')">Target: COOP same-origin-allow-popups</button>
-        <button onclick="testCoopIframe('same-origin')">Target: COOP same-origin</button>
-        <div id="coop-iframe-container"></div>
-        <div class="test-result" id="coop-iframe-result">Results will appear here...</div>
-    </div>
-
-    <h2>Cross-Origin Iframe with Credentials</h2>
-    <div class="status-card">
-        <p>Test embedding cross-origin iframes with/without credentials:</p>
-        <div style="margin: 10px 0;">
-            <label style="color:#888;">Custom URL:</label>
-            <input type="text" id="credential-iframe-url" placeholder="https://plateau-snow.exe.xyz:8000" value="https://plateau-snow.exe.xyz:8000/coop-target.html?corp=cross-origin" 
-                   style="background:#0f172a;color:#eee;border:1px solid #333;padding:8px;border-radius:4px;width:300px;margin:5px;">
-        </div>
-        <button onclick="testCredentialIframe(false)">Embed (with credentials)</button>
-        <button onclick="testCredentialIframe(true)">Embed (credentialless)</button>
-        <button onclick="testCredentialIframe(false, 'anonymous')">Embed (crossorigin=anonymous)</button>
-        <button onclick="testCredentialIframe(false, 'use-credentials')">Embed (crossorigin=use-credentials)</button>
-        
-        <p style="color:#888; margin-top:10px;">Quick test with plateau-snow:</p>
-        <button onclick="document.getElementById('credential-iframe-url').value='https://plateau-snow.exe.xyz:8000/coop-target.html?corp=cross-origin'; testCredentialIframe(false)">plateau-snow:8000 + credentials</button>
-        <button onclick="document.getElementById('credential-iframe-url').value='https://plateau-snow.exe.xyz:8001/coop-target.html?corp=cross-origin'; testCredentialIframe(false)">plateau-snow:8001 + credentials</button>
-        <div id="credential-iframe-container"></div>
-        <div class="test-result" id="credential-iframe-result">Results will appear here...
-
-Note: With COEP: require-corp, cross-origin iframes need CORP: cross-origin.
-With COEP: credentialless, cross-origin iframes load without credentials.
-Document-Isolation-Policy: isolate-and-credentialless allows isolation without COOP.</div>
-    </div>
-
-    <h2>Context Information</h2>
+    <h2>Context Info</h2>
     <div class="status-card info">
-        <div class="label">Window Context</div>
         <div class="test-result" id="context-info">Loading...</div>
     </div>
 
     <h2>Quick Reference</h2>
     <div class="status-card info">
-        <p><strong>To enable cross-origin isolation (traditional):</strong></p>
-        <code>Cross-Origin-Opener-Policy: same-origin</code><br>
-        <code>Cross-Origin-Embedder-Policy: require-corp</code>
+        <p><strong>For top-level page isolation:</strong></p>
+        <code>COOP: same-origin</code> + <code>COEP: require-corp</code>
         <br><br>
-        <p><strong>To enable cross-origin isolation (Chrome - embeddable):</strong></p>
-        <code>Document-Isolation-Policy: isolate-and-require-corp</code><br>
-        <span style="color:#888;font-size:12px;">Allows isolation without COOP, so page can be embedded in iframes</span>
+        <p><strong>For iframe isolation (Chrome 125+):</strong></p>
+        <code>Document-Isolation-Policy: isolate-and-require-corp</code>
+        <br><span style="color:#888;font-size:12px;">DIP works in iframes; COOP only works at top-level</span>
         <br><br>
-        <p><strong>To allow cross-origin resources with COEP:</strong></p>
-        <code>Cross-Origin-Resource-Policy: cross-origin</code> (on the resource)<br>
-        or use <code>crossorigin</code> attribute + CORS headers
-        <br><br>
-        <p><strong>COEP: credentialless vs require-corp:</strong></p>
-        <code>require-corp</code> - all cross-origin resources need CORP header<br>
-        <code>credentialless</code> - cross-origin requests sent without credentials<br>
-        <br>
-        <p><strong>To be embeddable in a cross-origin isolated page:</strong></p>
-        <code>Cross-Origin-Resource-Policy: cross-origin</code>
-        <br><br>
-        <p><strong>COOP and iframes:</strong></p>
-        <span style="color:#888;font-size:12px;">
-        • COOP on the <em>parent</em> page: affects popups opened from the page, not iframe embedding<br>
-        • COOP on the <em>iframe target</em>: the iframe still loads! COOP isolates the iframe's window.opener relationships<br>
-        • COOP: same-origin on iframe target = iframe is isolated from opener, but parent can still embed it<br>
-        • To <em>prevent</em> being embedded: use <code>X-Frame-Options</code> or <code>frame-ancestors</code> CSP
-        </span>
+        <p><strong>To be embeddable when parent has COEP:</strong></p>
+        <code>CORP: cross-origin</code>
     </div>
 
     <script>
-        // Check cross-origin isolation status
         function checkStatus() {
-            // Cross-Origin Isolated
             const isolated = window.crossOriginIsolated;
-            const isolatedEl = document.getElementById('cross-origin-isolated');
-            isolatedEl.textContent = isolated ? '✓ Yes' : '✗ No';
-            isolatedEl.className = 'value ' + (isolated ? 'true' : 'false');
+            document.getElementById('cross-origin-isolated').textContent = isolated ? '✓ Yes' : '✗ No';
+            document.getElementById('cross-origin-isolated').className = 'value ' + (isolated ? 'true' : 'false');
             document.getElementById('isolated-card').className = 'status-card ' + (isolated ? 'success' : 'warning');
 
-            // SharedArrayBuffer
             const sabEl = document.getElementById('shared-array-buffer');
             try {
                 new SharedArrayBuffer(1);
@@ -347,399 +211,80 @@ Document-Isolation-Policy: isolate-and-credentialless allows isolation without C
                 document.getElementById('sab-card').className = 'status-card warning';
             }
 
-            // Atomics.wait
-            const atomicsEl = document.getElementById('atomics-wait');
-            try {
-                const sab = new SharedArrayBuffer(4);
-                const view = new Int32Array(sab);
-                Atomics.wait(view, 0, 0, 0);
-                atomicsEl.textContent = '✓ Available';
-                atomicsEl.className = 'value true';
-                document.getElementById('atomics-card').className = 'status-card success';
-            } catch (e) {
-                if (e.message.includes('main thread')) {
-                    atomicsEl.textContent = '⚠ Only in Workers';
-                    atomicsEl.className = 'value na';
-                    document.getElementById('atomics-card').className = 'status-card info';
-                } else {
-                    atomicsEl.textContent = '✗ Unavailable';
-                    atomicsEl.className = 'value false';
-                    document.getElementById('atomics-card').className = 'status-card warning';
-                }
-            }
-
-            // High-res timing
-            const perfEl = document.getElementById('perf-timing');
-            const resolution = performance.now() % 1;
-            if (resolution !== 0 && resolution < 0.1) {
-                perfEl.textContent = '✓ High Resolution';
-                perfEl.className = 'value true';
-                document.getElementById('perf-card').className = 'status-card success';
-            } else {
-                perfEl.textContent = `⚠ Reduced (${resolution.toFixed(4)}ms)`;
-                perfEl.className = 'value na';
-                document.getElementById('perf-card').className = 'status-card info';
-            }
-
-            // Display active headers
-            displayHeaders();
-
-            // Context info
-            displayContext();
-
-            // Set form values from URL
-            const params = new URLSearchParams(window.location.search);
-            document.getElementById('coop-select').value = params.get('coop') || '';
-            document.getElementById('coep-select').value = params.get('coep') || '';
-            document.getElementById('corp-select').value = params.get('corp') || '';
-            document.getElementById('dip-select').value = params.get('dip') || '';
-        }
-
-        function displayHeaders() {
+            // Headers
             const params = new URLSearchParams(window.location.search);
             const headers = [];
-            
-            const coop = params.get('coop');
-            const coep = params.get('coep');
-            const corp = params.get('corp');
+            ['coop', 'coep', 'corp', 'dip'].forEach(h => {
+                const v = params.get(h);
+                if (v) headers.push(`<span class="header-display">${h.toUpperCase()}: ${v}</span>`);
+                const el = document.getElementById(h + '-select');
+                if (el) el.value = v || '';
+            });
+            document.getElementById('active-headers').innerHTML = headers.length ? headers.join(' ') : '<em>None</em>';
 
-            const dip = params.get('dip');
-
-            if (coop) headers.push(`<span class="header-display">COOP: ${coop}</span>`);
-            if (coep) headers.push(`<span class="header-display">COEP: ${coep}</span>`);
-            if (corp) headers.push(`<span class="header-display">CORP: ${corp}</span>`);
-            if (dip) headers.push(`<span class="header-display">DIP: ${dip}</span>`);
-
-            document.getElementById('active-headers').innerHTML = 
-                headers.length > 0 ? headers.join(' ') : '<em>No special headers configured</em>';
-        }
-
-        function displayContext() {
-            const info = {
-                'window.crossOriginIsolated': window.crossOriginIsolated,
-                'window.isSecureContext': window.isSecureContext,
-                'window.origin': window.origin,
-                'document.domain': document.domain,
-                'window.opener': window.opener ? 'exists' : 'null',
-                'window.parent === window': window.parent === window,
-                'window.top === window': window.top === window,
-            };
-            document.getElementById('context-info').textContent = JSON.stringify(info, null, 2);
+            // Context
+            document.getElementById('context-info').textContent = JSON.stringify({
+                'crossOriginIsolated': window.crossOriginIsolated,
+                'isSecureContext': window.isSecureContext,
+                'origin': window.origin,
+                'inIframe': window.parent !== window,
+            }, null, 2);
         }
 
         function applyHeaders() {
-            const coop = document.getElementById('coop-select').value;
-            const coep = document.getElementById('coep-select').value;
-            const corp = document.getElementById('corp-select').value;
-            const dip = document.getElementById('dip-select').value;
-            
             const params = new URLSearchParams();
-            if (coop) params.set('coop', coop);
-            if (coep) params.set('coep', coep);
-            if (corp) params.set('corp', corp);
-            if (dip) params.set('dip', dip);
-            
-            const queryString = params.toString();
-            window.location.href = '/' + (queryString ? '?' + queryString : '');
+            ['coop', 'coep', 'corp', 'dip'].forEach(h => {
+                const v = document.getElementById(h + '-select').value;
+                if (v) params.set(h, v);
+            });
+            window.location.href = window.location.pathname + (params.toString() ? '?' + params : '');
         }
 
-        async function testFetch(corp) {
-            const resultEl = document.getElementById('fetch-result');
-            resultEl.textContent = 'Fetching...';
-            
-            try {
-                const url = '/api/echo' + (corp ? `?corp=${corp}` : '');
-                const response = await fetch(url);
-                const data = await response.json();
-                resultEl.textContent = `✓ Success!\nURL: ${url}\nResponse: ${JSON.stringify(data, null, 2)}`;
-            } catch (e) {
-                resultEl.textContent = `✗ Failed!\nError: ${e.message}`;
-            }
-        }
-
-        function testIframeFromOrigin(origin, coop, coep, corp) {
+        function testIframe(headers, credentialless = false) {
             const container = document.getElementById('iframe-container');
             const resultEl = document.getElementById('iframe-result');
+            const baseUrl = document.getElementById('target-origin').value;
             
             const params = new URLSearchParams();
-            if (coop) params.set('coop', coop);
-            if (coep) params.set('coep', coep);
-            if (corp) params.set('corp', corp);
+            if (headers.coop) params.set('coop', headers.coop);
+            if (headers.coep) params.set('coep', headers.coep);
+            if (headers.dip) params.set('dip', headers.dip);
+            params.set('corp', 'cross-origin'); // Always need this for parent's COEP
             
-            const url = origin + '/embed.html' + (params.toString() ? '?' + params.toString() : '');
+            const url = baseUrl + '/coop-target.html?' + params;
             
-            resultEl.textContent = `Loading iframe from DIFFERENT ORIGIN:\nURL: ${url}\nCOOP: ${coop || 'none'}\nCOEP: ${coep || 'none'}\nCORP: ${corp || 'none'}`;
+            const config = [];
+            if (headers.coop) config.push('COOP: ' + headers.coop);
+            if (headers.coep) config.push('COEP: ' + headers.coep);
+            if (headers.dip) config.push('DIP: ' + headers.dip);
+            if (credentialless) config.push('iframe[credentialless]');
             
-            container.innerHTML = '';
-            const iframe = document.createElement('iframe');
-            iframe.src = url;
-            iframe.style.width = '100%';
-            iframe.style.height = '200px';
-            iframe.style.border = '2px solid #f59e0b';
-            iframe.style.borderRadius = '4px';
-            iframe.style.background = '#fff';
-            iframe.onload = () => {
-                resultEl.textContent += '\n\n✓ Iframe loaded successfully!';
-            };
-            iframe.onerror = (e) => {
-                resultEl.textContent += `\n\n✗ Iframe failed to load: ${e}`;
-            };
-            container.appendChild(iframe);
-        }
-
-        function testIframe(coop, coep, corp) {
-            const container = document.getElementById('iframe-container');
-            const resultEl = document.getElementById('iframe-result');
-            
-            const params = new URLSearchParams();
-            if (coop) params.set('coop', coop);
-            if (coep) params.set('coep', coep);
-            if (corp) params.set('corp', corp);
-            
-            const url = '/embed.html' + (params.toString() ? '?' + params.toString() : '');
-            
-            resultEl.textContent = `Loading iframe with:\nCOOP: ${coop || 'none'}\nCOEP: ${coep || 'none'}\nCORP: ${corp || 'none'}\nURL: ${url}`;
+            resultEl.textContent = `Target: ${url}\nConfig: ${config.length ? config.join(', ') : 'none'}\n\nParent origin: ${window.origin}\nParent isolated: ${window.crossOriginIsolated}`;
             
             container.innerHTML = '';
             const iframe = document.createElement('iframe');
             iframe.src = url;
-            iframe.onload = () => {
-                resultEl.textContent += '\n\n✓ Iframe loaded successfully!';
-            };
-            iframe.onerror = (e) => {
-                resultEl.textContent += `\n\n✗ Iframe failed to load: ${e}`;
-            };
-            container.appendChild(iframe);
-        }
-
-        function testCrossOriginCoopIframe(coop, coep, options = {}) {
-            const container = document.getElementById('cross-origin-coop-iframe-container');
-            const resultEl = document.getElementById('cross-origin-coop-iframe-result');
-            const baseUrl = document.getElementById('cross-origin-base').value || 'https://plateau-snow.exe.xyz:8000';
-            
-            const params = new URLSearchParams();
-            if (coop) params.set('coop', coop);
-            if (coep) params.set('coep', coep);
-            if (options.dip) params.set('dip', options.dip);
-            // Add CORP so it works when we have COEP
-            params.set('corp', 'cross-origin');
-            
-            const url = baseUrl + '/coop-target.html' + (params.toString() ? '?' + params.toString() : '');
-            
-            let configInfo = [];
-            if (coop) configInfo.push(`COOP: ${coop}`);
-            if (coep) configInfo.push(`COEP: ${coep}`);
-            if (options.dip) configInfo.push(`DIP: ${options.dip}`);
-            if (options.credentialless) configInfo.push('iframe[credentialless]');
-            if (configInfo.length === 0) configInfo.push('No special headers');
-            
-            resultEl.textContent = `Loading CROSS-ORIGIN iframe:\nTarget URL: ${url}\nTarget config: ${configInfo.join(', ')}\nTarget CORP: cross-origin (for your COEP)\n\nYour origin: ${window.origin}\nYour page isolation: ${window.crossOriginIsolated ? 'Yes' : 'No'}\nYour COEP: ${new URLSearchParams(location.search).get('coep') || 'none'}\n\nIframe attributes: ${options.credentialless ? 'credentialless' : 'none'}`;
-            
-            container.innerHTML = '';
-            const iframe = document.createElement('iframe');
-            iframe.src = url;
-            iframe.style.width = '100%';
-            iframe.style.height = '150px';
-            iframe.style.border = '2px solid #f59e0b';
-            iframe.style.borderRadius = '4px';
-            iframe.style.background = '#fff';
-            
-            iframe.onload = () => {
-                resultEl.textContent += '\n\n✓ Iframe loaded successfully!';
-                resultEl.textContent += '\n\nCross-origin access tests:';
-                
-                // Try to access iframe content (should fail - cross-origin)
-                try {
-                    const doc = iframe.contentDocument;
-                    if (doc) {
-                        resultEl.textContent += '\n✓ Can access contentDocument (unexpected for cross-origin!)';
-                    } else {
-                        resultEl.textContent += '\n✗ contentDocument is null (expected for cross-origin)';
-                    }
-                } catch (e) {
-                    resultEl.textContent += `\n✗ Cannot access contentDocument: ${e.message}`;
-                }
-                
-                // Try contentWindow
-                try {
-                    const win = iframe.contentWindow;
-                    resultEl.textContent += `\n• contentWindow exists: ${!!win}`;
-                    if (win) {
-                        try {
-                            const origin = win.origin;
-                            resultEl.textContent += `\n✓ Can read contentWindow.origin: ${origin}`;
-                        } catch (e2) {
-                            resultEl.textContent += `\n✗ Cannot read origin: ${e2.message}`;
-                        }
-                        try {
-                            const loc = win.location.href;
-                            resultEl.textContent += `\n✓ Can read location.href: ${loc}`;
-                        } catch (e3) {
-                            resultEl.textContent += `\n✗ Cannot read location.href (expected for cross-origin)`;
-                        }
-                    }
-                } catch (e) {
-                    resultEl.textContent += `\n✗ Cannot access contentWindow: ${e.message}`;
-                }
-                
-                resultEl.textContent += '\n\n→ COOP on the target does NOT prevent embedding!';
-                resultEl.textContent += '\n→ Cross-origin restrictions are from same-origin policy, not COOP.';
-            };
-            
-            iframe.onerror = (e) => {
-                resultEl.textContent += `\n\n✗ Iframe failed to load (network error or blocked)`;
-            };
-            
-            // Apply credentialless if requested
-            if (options.credentialless) {
-                iframe.credentialless = true;
-                iframe.setAttribute('credentialless', '');
-            }
-            
-            container.appendChild(iframe);
-            
-            // Listen for message from iframe reporting its isolation status
-            const messageHandler = (event) => {
-                if (event.data && event.data.type === 'coop-target-status') {
-                    resultEl.textContent += `\n\n📨 Message from iframe:`;
-                    resultEl.textContent += `\n   crossOriginIsolated: ${event.data.crossOriginIsolated}`;
-                    resultEl.textContent += `\n   origin: ${event.data.origin || 'unknown'}`;
-                    if (event.data.crossOriginIsolated) {
-                        resultEl.textContent += `\n\n✅ SUCCESS! Iframe is cross-origin isolated!`;
-                    }
-                    window.removeEventListener('message', messageHandler);
-                }
-            };
-            window.addEventListener('message', messageHandler);
-        }
-
-        function testCoopIframe(coop) {
-            const container = document.getElementById('coop-iframe-container');
-            const resultEl = document.getElementById('coop-iframe-result');
-            
-            const params = new URLSearchParams();
-            if (coop) params.set('coop', coop);
-            // Add CORP so it works when we have COEP
-            params.set('corp', 'cross-origin');
-            
-            const url = '/coop-target.html' + (params.toString() ? '?' + params.toString() : '');
-            
-            resultEl.textContent = `Loading iframe where TARGET has:\nCOOP: ${coop || 'none'}\nCORP: cross-origin\n\nYour page isolation: ${window.crossOriginIsolated ? 'Yes' : 'No'}\nYour COEP: ${new URLSearchParams(location.search).get('coep') || 'none'}`;
-            
-            container.innerHTML = '';
-            const iframe = document.createElement('iframe');
-            iframe.src = url;
-            iframe.style.width = '100%';
-            iframe.style.height = '150px';
-            iframe.style.border = '2px solid #333';
-            iframe.style.borderRadius = '4px';
-            iframe.style.background = '#fff';
-            
-            iframe.onload = () => {
-                resultEl.textContent += '\n\n✓ Iframe loaded successfully';
-                // Try to access iframe content (will fail cross-origin)
-                try {
-                    const doc = iframe.contentDocument;
-                    resultEl.textContent += '\n✓ Can access iframe contentDocument (same-origin)';
-                } catch (e) {
-                    resultEl.textContent += `\n✗ Cannot access contentDocument: ${e.message}`;
-                }
-                // Try to access contentWindow
-                try {
-                    const win = iframe.contentWindow;
-                    resultEl.textContent += `\niframe.contentWindow exists: ${!!win}`;
-                    if (win) {
-                        try {
-                            resultEl.textContent += `\niframe.contentWindow.origin: ${win.origin}`;
-                        } catch (e2) {
-                            resultEl.textContent += `\n✗ Cannot read origin: ${e2.message}`;
-                        }
-                    }
-                } catch (e) {
-                    resultEl.textContent += `\n✗ Cannot access contentWindow: ${e.message}`;
-                }
-            };
-            iframe.onerror = (e) => {
-                resultEl.textContent += `\n\n✗ Iframe failed to load`;
-            };
-            container.appendChild(iframe);
-        }
-
-        function testExternalIframe(url) {
-            const container = document.getElementById('external-iframe-container');
-            const resultEl = document.getElementById('external-iframe-result');
-            
-            resultEl.textContent = `Attempting to embed: ${url}\n\nNote: With COEP: require-corp, external resources need CORP: cross-origin header`;
-            
-            container.innerHTML = '';
-            const iframe = document.createElement('iframe');
-            iframe.src = url;
-            iframe.onload = () => {
-                resultEl.textContent += '\n\n✓ Iframe loaded (but may be blocked by X-Frame-Options)';
-            };
-            iframe.onerror = (e) => {
-                resultEl.textContent += `\n\n✗ Iframe blocked`;
-            };
-            container.appendChild(iframe);
-        }
-
-        function testCredentialIframe(credentialless, crossorigin) {
-            const container = document.getElementById('credential-iframe-container');
-            const resultEl = document.getElementById('credential-iframe-result');
-            const urlInput = document.getElementById('credential-iframe-url');
-            const url = urlInput.value || 'https://plateau-snow.exe.xyz:8000/coop-target.html?corp=cross-origin';
-            
-            let config = [];
-            if (credentialless) config.push('credentialless attribute');
-            if (crossorigin) config.push(`crossorigin="${crossorigin}"`);
-            if (config.length === 0) config.push('default (with credentials)');
-            
-            resultEl.textContent = `Embedding: ${url}\nConfiguration: ${config.join(', ')}\n\nCurrent page isolation: ${window.crossOriginIsolated ? 'Yes' : 'No'}`;
-            
-            container.innerHTML = '';
-            const iframe = document.createElement('iframe');
-            iframe.src = url;
-            iframe.style.width = '100%';
-            iframe.style.height = '200px';
-            iframe.style.border = '2px solid #333';
-            iframe.style.borderRadius = '4px';
-            iframe.style.background = '#fff';
-            
             if (credentialless) {
                 iframe.credentialless = true;
-                // Also set attribute for browsers that use it
                 iframe.setAttribute('credentialless', '');
             }
             
-            if (crossorigin) {
-                iframe.crossOrigin = crossorigin;
-            }
-            
-            iframe.onload = () => {
-                resultEl.textContent += '\n\n✓ Iframe loaded successfully';
-                resultEl.textContent += `\niframe.credentialless: ${iframe.credentialless}`;
-                resultEl.textContent += `\niframe.crossOrigin: ${iframe.crossOrigin || 'null'}`;
-            };
-            iframe.onerror = (e) => {
-                resultEl.textContent += `\n\n✗ Iframe failed to load`;
-            };
-            
-            // Listen for COEP blocking
-            const originalError = window.onerror;
-            window.onerror = (msg, source, line, col, error) => {
-                if (msg.includes('cross-origin') || msg.includes('COEP') || msg.includes('CORP')) {
-                    resultEl.textContent += `\n\n⚠ Error: ${msg}`;
-                }
-                if (originalError) return originalError(msg, source, line, col, error);
-            };
-            
+            iframe.onload = () => resultEl.textContent += '\n\n✓ Iframe loaded';
+            iframe.onerror = () => resultEl.textContent += '\n\n✗ Iframe failed to load';
             container.appendChild(iframe);
+            
+            // Listen for message from iframe
+            const handler = (e) => {
+                if (e.data?.type === 'coop-target-status') {
+                    resultEl.textContent += `\n\n📨 Iframe reports:\n   crossOriginIsolated: ${e.data.crossOriginIsolated}`;
+                    if (e.data.crossOriginIsolated) {
+                        resultEl.textContent += '\n\n✅ SUCCESS! Iframe is isolated!';
+                    }
+                    window.removeEventListener('message', handler);
+                }
+            };
+            window.addEventListener('message', handler);
         }
-
-        // Listen for messages from embedded iframes
-        window.addEventListener('message', (event) => {
-            console.log('Message from iframe:', event.data);
-        });
 
         checkStatus();
     </script>
