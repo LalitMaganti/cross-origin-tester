@@ -204,10 +204,10 @@
         <div class="test-result" id="external-iframe-result">Results will appear here...</div>
     </div>
 
-    <h2>Embed Cross-Origin Site with COOP Header</h2>
-    <div class="status-card">
-        <p>Test embedding a <strong>cross-origin</strong> page that sets COOP headers:</p>
-        <p style="color:#888;font-size:12px;">Uses port 8001 as a different origin. Both need CORP: cross-origin when you have COEP.</p>
+    <h2>Cross-Origin Iframe Isolation Tests</h2>
+    <div class="status-card" style="border-left-color: #f59e0b;">
+        <p><strong>Goal: Get <code>crossOriginIsolated: true</code> in a cross-origin iframe</strong></p>
+        <p style="color:#888;font-size:12px;">Uses port 8001 as a different origin. Your page (parent) is on port 8000.</p>
         
         <div style="margin: 10px 0;">
             <label style="color:#888;">Target Origin:</label>
@@ -215,20 +215,33 @@
                    style="background:#0f172a;color:#eee;border:1px solid #333;padding:8px;border-radius:4px;width:250px;margin:5px;">
         </div>
         
-        <button onclick="testCrossOriginCoopIframe('', '')">Target: No COOP/COEP</button>
-        <button onclick="testCrossOriginCoopIframe('same-origin', 'require-corp')">Target: COOP+COEP (isolated)</button>
-        <button onclick="testCrossOriginCoopIframe('same-origin', '')">Target: COOP only</button>
-        <button onclick="testCrossOriginCoopIframe('', 'require-corp')">Target: COEP only</button>
+        <p style="color:#fbbf24;">Method 1: Target headers only (COOP doesn't work in iframes)</p>
+        <button onclick="testCrossOriginCoopIframe('', '', {})">No headers</button>
+        <button onclick="testCrossOriginCoopIframe('same-origin', 'require-corp', {})">COOP+COEP</button>
+        
+        <p style="color:#fbbf24; margin-top:15px;">Method 2: credentialless iframe attribute</p>
+        <button onclick="testCrossOriginCoopIframe('same-origin', 'require-corp', {credentialless: true})">COOP+COEP + credentialless iframe</button>
+        <button onclick="testCrossOriginCoopIframe('', '', {credentialless: true})">No headers + credentialless iframe</button>
+        
+        <p style="color:#fbbf24; margin-top:15px;">Method 3: Document-Isolation-Policy (Chrome only, designed for iframes)</p>
+        <button onclick="testCrossOriginCoopIframe('', '', {dip: 'isolate-and-require-corp'})">DIP: isolate-and-require-corp</button>
+        <button onclick="testCrossOriginCoopIframe('', '', {dip: 'isolate-and-credentialless'})">DIP: isolate-and-credentialless</button>
+        <button onclick="testCrossOriginCoopIframe('', 'require-corp', {dip: 'isolate-and-require-corp'})">COEP + DIP</button>
         <div id="cross-origin-coop-iframe-container"></div>
         <div class="test-result" id="cross-origin-coop-iframe-result">Results will appear here...
 
-This tests what happens when YOU embed a CROSS-ORIGIN iframe where the TARGET sets COOP.
+Goal: Get crossOriginIsolated: true in a cross-origin iframe
 
-Key points:
-- COOP: same-origin on the target does NOT prevent iframe embedding
-- COOP affects window.opener (popup) relationships, not parent/child iframe relationships
-- With your COEP: require-corp, the target needs CORP: cross-origin to load
-- Cross-origin iframes are always restricted by same-origin policy regardless of COOP</div>
+Why COOP doesn't work for iframes:
+- COOP (Cross-Origin-Opener-Policy) only applies to TOP-LEVEL browsing contexts
+- Iframes are not top-level, so COOP headers on iframe content are ignored for isolation
+
+Possible solutions:
+1. credentialless iframe - loads iframe without credentials, may enable isolation
+2. Document-Isolation-Policy - Chrome feature designed for iframe isolation
+3. Same-origin iframe inside isolated parent (not cross-origin)
+
+Note: Your parent page must also be isolated for some of these to work.</div>
     </div>
 
     <h2>Embed Same-Origin Site with COOP Header</h2>
@@ -456,7 +469,7 @@ Document-Isolation-Policy: isolate-and-credentialless allows isolation without C
             container.appendChild(iframe);
         }
 
-        function testCrossOriginCoopIframe(coop, coep) {
+        function testCrossOriginCoopIframe(coop, coep, options = {}) {
             const container = document.getElementById('cross-origin-coop-iframe-container');
             const resultEl = document.getElementById('cross-origin-coop-iframe-result');
             const baseUrl = document.getElementById('cross-origin-base').value || 'http://localhost:8001';
@@ -464,13 +477,20 @@ Document-Isolation-Policy: isolate-and-credentialless allows isolation without C
             const params = new URLSearchParams();
             if (coop) params.set('coop', coop);
             if (coep) params.set('coep', coep);
+            if (options.dip) params.set('dip', options.dip);
             // Add CORP so it works when we have COEP
             params.set('corp', 'cross-origin');
             
             const url = baseUrl + '/coop-target.html' + (params.toString() ? '?' + params.toString() : '');
             
-            const targetIsolated = coop === 'same-origin' && coep === 'require-corp';
-            resultEl.textContent = `Loading CROSS-ORIGIN iframe:\nTarget URL: ${url}\nTarget COOP: ${coop || 'none'}\nTarget COEP: ${coep || 'none'}\nTarget CORP: cross-origin\nTarget will be isolated: ${targetIsolated ? 'Yes' : 'No'}\n\nYour origin: ${window.origin}\nYour page isolation: ${window.crossOriginIsolated ? 'Yes' : 'No'}\nYour COEP: ${new URLSearchParams(location.search).get('coep') || 'none'}`;
+            let configInfo = [];
+            if (coop) configInfo.push(`COOP: ${coop}`);
+            if (coep) configInfo.push(`COEP: ${coep}`);
+            if (options.dip) configInfo.push(`DIP: ${options.dip}`);
+            if (options.credentialless) configInfo.push('iframe[credentialless]');
+            if (configInfo.length === 0) configInfo.push('No special headers');
+            
+            resultEl.textContent = `Loading CROSS-ORIGIN iframe:\nTarget URL: ${url}\nTarget config: ${configInfo.join(', ')}\nTarget CORP: cross-origin (for your COEP)\n\nYour origin: ${window.origin}\nYour page isolation: ${window.crossOriginIsolated ? 'Yes' : 'No'}\nYour COEP: ${new URLSearchParams(location.search).get('coep') || 'none'}\n\nIframe attributes: ${options.credentialless ? 'credentialless' : 'none'}`;
             
             container.innerHTML = '';
             const iframe = document.createElement('iframe');
@@ -527,7 +547,27 @@ Document-Isolation-Policy: isolate-and-credentialless allows isolation without C
                 resultEl.textContent += `\n\n✗ Iframe failed to load (network error or blocked)`;
             };
             
+            // Apply credentialless if requested
+            if (options.credentialless) {
+                iframe.credentialless = true;
+                iframe.setAttribute('credentialless', '');
+            }
+            
             container.appendChild(iframe);
+            
+            // Listen for message from iframe reporting its isolation status
+            const messageHandler = (event) => {
+                if (event.data && event.data.type === 'coop-target-status') {
+                    resultEl.textContent += `\n\n📨 Message from iframe:`;
+                    resultEl.textContent += `\n   crossOriginIsolated: ${event.data.crossOriginIsolated}`;
+                    resultEl.textContent += `\n   origin: ${event.data.origin || 'unknown'}`;
+                    if (event.data.crossOriginIsolated) {
+                        resultEl.textContent += `\n\n✅ SUCCESS! Iframe is cross-origin isolated!`;
+                    }
+                    window.removeEventListener('message', messageHandler);
+                }
+            };
+            window.addEventListener('message', messageHandler);
         }
 
         function testCoopIframe(coop) {

@@ -40,6 +40,7 @@
     <div>
         <span class="badge" id="coop-badge">COOP: checking...</span>
         <span class="badge" id="coep-badge">COEP: checking...</span>
+        <span class="badge" id="dip-badge">DIP: checking...</span>
         <span class="badge" id="isolated-badge">Isolated: checking...</span>
     </div>
     <div class="info" id="info">Loading...</div>
@@ -57,6 +58,11 @@
         const coepBadge = document.getElementById('coep-badge');
         coepBadge.textContent = `COEP: ${coep || 'none'}`;
         coepBadge.className = 'badge ' + (coep ? 'active' : 'inactive');
+        
+        const dip = params.get('dip');
+        const dipBadge = document.getElementById('dip-badge');
+        dipBadge.textContent = `DIP: ${dip || 'none'}`;
+        dipBadge.className = 'badge ' + (dip ? 'active' : 'inactive');
         
         const isolatedBadge = document.getElementById('isolated-badge');
         isolatedBadge.textContent = `Isolated: ${window.crossOriginIsolated ? 'Yes' : 'No'}`;
@@ -85,7 +91,10 @@
             window.parent.postMessage({
                 type: 'coop-target-status',
                 coop: coop,
+                coep: coep,
+                dip: dip,
                 crossOriginIsolated: window.crossOriginIsolated,
+                origin: window.origin,
                 inIframe: true
             }, '*');
         }
