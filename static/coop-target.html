@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>COOP Target Page</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-size: 13px;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+        h3 { margin: 0 0 10px; }
+        .info {
+            background: rgba(255,255,255,0.2);
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            margin: 2px;
+        }
+        .badge.active { background: rgba(255,255,255,0.3); }
+        .badge.inactive { background: rgba(0,0,0,0.2); }
+    </style>
+</head>
+<body>
+    <h3>🎯 Target Page (I have COOP set)</h3>
+    <div>
+        <span class="badge" id="coop-badge">COOP: checking...</span>
+        <span class="badge" id="isolated-badge">Isolated: checking...</span>
+    </div>
+    <div class="info" id="info">Loading...</div>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const coop = params.get('coop');
+        
+        // Update badges
+        const coopBadge = document.getElementById('coop-badge');
+        coopBadge.textContent = `COOP: ${coop || 'none'}`;
+        coopBadge.className = 'badge ' + (coop ? 'active' : 'inactive');
+        
+        const isolatedBadge = document.getElementById('isolated-badge');
+        isolatedBadge.textContent = `Isolated: ${window.crossOriginIsolated ? 'Yes' : 'No'}`;
+        isolatedBadge.className = 'badge ' + (window.crossOriginIsolated ? 'active' : 'inactive');
+        
+        // Detailed info
+        const info = {
+            'crossOriginIsolated': window.crossOriginIsolated,
+            'isSecureContext': window.isSecureContext,
+            'origin': window.origin,
+            'inIframe': window.parent !== window,
+            'window.opener': window.opener ? 'exists' : 'null',
+            'parent.origin (try)': 'checking...'
+        };
+        
+        try {
+            info['parent.origin (try)'] = window.parent.origin;
+        } catch (e) {
+            info['parent.origin (try)'] = `blocked: ${e.message}`;
+        }
+        
+        document.getElementById('info').textContent = JSON.stringify(info, null, 2);
+        
+        // Notify parent
+        if (window.parent !== window) {
+            window.parent.postMessage({
+                type: 'coop-target-status',
+                coop: coop,
+                crossOriginIsolated: window.crossOriginIsolated,
+                inIframe: true
+            }, '*');
+        }
+    </script>
+</body>
+</html>

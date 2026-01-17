@@ -204,6 +204,22 @@
         <div class="test-result" id="external-iframe-result">Results will appear here...</div>
     </div>
 
+    <h2>Embed Site with COOP Header</h2>
+    <div class="status-card">
+        <p>Test embedding a page that itself sets COOP headers (served from this origin):</p>
+        <button onclick="testCoopIframe('')">Target: No COOP</button>
+        <button onclick="testCoopIframe('unsafe-none')">Target: COOP unsafe-none</button>
+        <button onclick="testCoopIframe('same-origin-allow-popups')">Target: COOP same-origin-allow-popups</button>
+        <button onclick="testCoopIframe('same-origin')">Target: COOP same-origin</button>
+        <div id="coop-iframe-container"></div>
+        <div class="test-result" id="coop-iframe-result">Results will appear here...
+
+Note: COOP on the *target* page controls its opener/window relationships.
+- COOP: same-origin on the target means it wants isolation from its opener.
+- The iframe will still load, but cross-origin communication may be restricted.
+- COOP primarily affects window.opener, not iframe embedding.</div>
+    </div>
+
     <h2>Cross-Origin Iframe with Credentials</h2>
     <div class="status-card">
         <p>Test embedding cross-origin iframes with/without credentials:</p>
@@ -250,6 +266,14 @@ Document-Isolation-Policy: isolate-and-credentialless allows isolation without C
         <br>
         <p><strong>To be embeddable in a cross-origin isolated page:</strong></p>
         <code>Cross-Origin-Resource-Policy: cross-origin</code>
+        <br><br>
+        <p><strong>COOP and iframes:</strong></p>
+        <span style="color:#888;font-size:12px;">
+        • COOP on the <em>parent</em> page: affects popups opened from the page, not iframe embedding<br>
+        • COOP on the <em>iframe target</em>: the iframe still loads! COOP isolates the iframe's window.opener relationships<br>
+        • COOP: same-origin on iframe target = iframe is isolated from opener, but parent can still embed it<br>
+        • To <em>prevent</em> being embedded: use <code>X-Frame-Options</code> or <code>frame-ancestors</code> CSP
+        </span>
     </div>
 
     <script>
@@ -406,6 +430,58 @@ Document-Isolation-Policy: isolate-and-credentialless allows isolation without C
             };
             iframe.onerror = (e) => {
                 resultEl.textContent += `\n\n✗ Iframe failed to load: ${e}`;
+            };
+            container.appendChild(iframe);
+        }
+
+        function testCoopIframe(coop) {
+            const container = document.getElementById('coop-iframe-container');
+            const resultEl = document.getElementById('coop-iframe-result');
+            
+            const params = new URLSearchParams();
+            if (coop) params.set('coop', coop);
+            // Add CORP so it works when we have COEP
+            params.set('corp', 'cross-origin');
+            
+            const url = '/coop-target.html' + (params.toString() ? '?' + params.toString() : '');
+            
+            resultEl.textContent = `Loading iframe where TARGET has:\nCOOP: ${coop || 'none'}\nCORP: cross-origin\n\nYour page isolation: ${window.crossOriginIsolated ? 'Yes' : 'No'}\nYour COEP: ${new URLSearchParams(location.search).get('coep') || 'none'}`;
+            
+            container.innerHTML = '';
+            const iframe = document.createElement('iframe');
+            iframe.src = url;
+            iframe.style.width = '100%';
+            iframe.style.height = '150px';
+            iframe.style.border = '2px solid #333';
+            iframe.style.borderRadius = '4px';
+            iframe.style.background = '#fff';
+            
+            iframe.onload = () => {
+                resultEl.textContent += '\n\n✓ Iframe loaded successfully';
+                // Try to access iframe content (will fail cross-origin)
+                try {
+                    const doc = iframe.contentDocument;
+                    resultEl.textContent += '\n✓ Can access iframe contentDocument (same-origin)';
+                } catch (e) {
+                    resultEl.textContent += `\n✗ Cannot access contentDocument: ${e.message}`;
+                }
+                // Try to access contentWindow
+                try {
+                    const win = iframe.contentWindow;
+                    resultEl.textContent += `\niframe.contentWindow exists: ${!!win}`;
+                    if (win) {
+                        try {
+                            resultEl.textContent += `\niframe.contentWindow.origin: ${win.origin}`;
+                        } catch (e2) {
+                            resultEl.textContent += `\n✗ Cannot read origin: ${e2.message}`;
+                        }
+                    }
+                } catch (e) {
+                    resultEl.textContent += `\n✗ Cannot access contentWindow: ${e.message}`;
+                }
+            };
+            iframe.onerror = (e) => {
+                resultEl.textContent += `\n\n✗ Iframe failed to load`;
             };
             container.appendChild(iframe);
         }
