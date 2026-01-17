@@ -244,8 +244,10 @@
                 <div style="color:#888; font-size:12px; margin-bottom:5px;">Access-Control-Allow-Origin</div>
                 <select id="fetch-acao">
                     <option value="*">* (any)</option>
+                    <option value="specific">Specific origin</option>
                     <option value="">None</option>
                 </select>
+                <input type="text" id="fetch-acao-origin" value="https://alpha-quantum.exe.xyz:8000" style="margin-top:5px;display:none;" placeholder="Origin URL">
             </div>
         </div>
         
@@ -413,18 +415,30 @@
             window.addEventListener('message', handler);
         }
         
+        // Show/hide ACAO origin input based on selection
+        document.getElementById('fetch-acao').addEventListener('change', function() {
+            document.getElementById('fetch-acao-origin').style.display = this.value === 'specific' ? 'block' : 'none';
+        });
+
         async function testFetchFromConfig() {
             const resultEl = document.getElementById('fetch-result');
             const url = document.getElementById('fetch-url').value;
             const corp = document.getElementById('fetch-corp').value;
+            const acaoSelect = document.getElementById('fetch-acao').value;
+            const acaoOrigin = document.getElementById('fetch-acao-origin').value;
             const mode = document.getElementById('fetch-mode').value;
             const credentials = document.getElementById('fetch-credentials').value;
             
-            // Build URL with CORP param
+            // Determine ACAO value
+            let acao = acaoSelect;
+            if (acaoSelect === 'specific') acao = acaoOrigin;
+            
+            // Build URL with params
             const fetchUrl = new URL(url);
             if (corp) fetchUrl.searchParams.set('corp', corp);
+            if (acao && acao !== '*') fetchUrl.searchParams.set('acao', acao);
             
-            resultEl.textContent = `Fetching: ${fetchUrl}\n\nFetch options:\n  mode: ${mode}\n  credentials: ${credentials}\n\nTarget headers:\n  CORP: ${corp || 'none'}\n\nYour page:\n  origin: ${window.origin}\n  crossOriginIsolated: ${window.crossOriginIsolated}\n  COEP: ${new URLSearchParams(location.search).get('coep') || 'none'}`;
+            resultEl.textContent = `Fetching: ${fetchUrl}\n\nFetch options:\n  mode: ${mode}\n  credentials: ${credentials}\n\nTarget headers:\n  CORP: ${corp || 'none'}\n  ACAO: ${acao || 'none'}\n\nYour page:\n  origin: ${window.origin}\n  crossOriginIsolated: ${window.crossOriginIsolated}\n  COEP: ${new URLSearchParams(location.search).get('coep') || 'none'}`;
             
             try {
                 const response = await fetch(fetchUrl.toString(), {

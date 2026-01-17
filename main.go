@@ -98,8 +98,15 @@ func main() {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		fmt.Fprintf(w, `{"status":"ok","method":"%s","corp":"%s"}`, r.Method, corp)
+		
+		// Set ACAO header - default to *, or use specified origin
+		acao := r.URL.Query().Get("acao")
+		if acao == "" {
+			acao = "*"
+		}
+		w.Header().Set("Access-Control-Allow-Origin", acao)
+		
+		fmt.Fprintf(w, `{"status":"ok","method":"%s","corp":"%s","acao":"%s"}`, r.Method, corp, acao)
 	})
 
 	// Proxy endpoint for cross-origin fetch tests
